@@ -1,0 +1,6 @@
+PHaRLAP is software created by the Defence Science and Technology Group of
+Australia.
+
+Please note that the release of PHaRLAP is strictly controlled. PHaRLAP is not 
+to be distributed, under any circumstance, to third parties. Third parties are 
+to directly contact the author of PHaRLAP and request a copy of it.  

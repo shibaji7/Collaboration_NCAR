@@ -1,0 +1,5 @@
+PHaRLAP is "scientific research" software. It is recommended not to be used for 
+operational purposes. The Defence Science and Technology Group of Australia 
+does not guarantee the results from PHaRLAP. The use of PHaRLAP is to be
+regarded "use at own risk". 
+
