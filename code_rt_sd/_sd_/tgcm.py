@@ -132,9 +132,13 @@ class TGCM(object):
                 lons.append(x[1])
             rinc = dist[1]-dist[0]
             m["dist"], m["lat"], m["lon"] = dist, np.array(lats), np.array(lons)
-            m["olat"], m["olon"], m["rb"], m["num_range"], m["max_range"], m["range_inc"] = lat, lon, bearing, self.nmrange, self.mrange, rinc
-            m["start_height"], m["height_inc"], m["num_heights"] = self.sheight, self.hinc, len(np.arange(self.sheight,self.eheight,self.hinc))
-            m["freq"], m["tol"], m["nhops"] = self.frequency, 1e-7, 1
+            m["olat"], m["olon"], m["rb"], m["num_range"], m["max_range"], m["range_inc"] = lat, lon, bearing, float(self.nmrange),\
+                    float(self.mrange), float(rinc)
+            m["start_height"], m["height_inc"], m["num_heights"] = float(self.sheight), float(self.hinc),\
+                    float(len(np.arange(self.sheight,self.eheight,self.hinc)))
+            m["freq"], m["tol"], m["nhops"] = float(self.frequency), float(1e-7), float(self.nhops)
+            m["elev_s"], m["elev_i"], m["elev_e"] = float(self.selev), float(self.ielev), float(self.eelev)
+            m["radius_earth"] = 6371.0
             savemat(fname, m)
         return
 
@@ -142,9 +146,12 @@ class TGCM(object):
         """ Compute RT using Pharlap """
         u = self.start + dt.timedelta(minutes=i)
         dic = "_data_/_sim_/{dn}/{rad}/".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad)
-        cmd = "cd _pharlap_;\
-                matlab -nodisplay -nodesktop -nosplash -nojvm -r \"UT=[{ut}];rad='{rad}';dic='{dic}';bm='{bm}';\
-                ti={ti};rt_1D;exit;\"".format(ut=u.strftime("%Y %m %d %H %S"),rad=self.rad, dic=dic, bm=self.bmnum, ti=i)
+        fname = "_data_/_sim_/{dn}/{rad}/ti({ti}).bm({bm}).elv(<elv>).csv".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), 
+                rad=self.rad, bm=self.bmnum, ti=i)
+        cmd = "export DIR_MODELS_REF_DAT=/home/shibaji/Collaboration_NCAR/code_rt_sd/_pharlap_/pharlap_4.1.3/dat;\
+                cd _pharlap_;\
+                matlab -nodisplay -nodesktop -nosplash -nojvm -r \"UT=[{ut}];rad='{rad}';dic='{dic}';fname='{fname}';bm='{bm}';\
+                ti={ti};rt_1D;exit;\"".format(ut=u.strftime("%Y %m %d %H %S"),rad=self.rad, dic=dic, bm=self.bmnum, ti=i, fname=fname)
         os.system(cmd)
         os.remove(dic + "tmp.mat")
         return
