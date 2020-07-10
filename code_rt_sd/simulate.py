@@ -34,7 +34,7 @@ if __name__ == "__main__":
                 type=dparser.isoparse)
         parser.add_argument("-e", "--end", default=dt.datetime(2015,3,11,16,25), help="End date (default 2015-3-11T16:25)",
                 type=dparser.isoparse)
-        parser.add_argument("-rd", "--save_radar", action="store_false", help="Save riometer data (default True)")
+        parser.add_argument("-rd", "--save_radar", action="store_true", help="Save riometer data (default False)")
         parser.add_argument("-ps", "--plot_summary", action="store_true", help="Plot summary report (default False)")
         parser.add_argument("-sr", "--save_result", action="store_false", help="Save results (default True)")
         parser.add_argument("-c", "--clear", action="store_true", help="Clear pervious stored files (default False)")

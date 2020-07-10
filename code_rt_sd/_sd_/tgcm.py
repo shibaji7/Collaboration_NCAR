@@ -169,7 +169,7 @@ class TGCM(object):
         print("\n Start simulation (using Pharlap) ...")
         self._nc_ = None
         self._estimate_bearing_()
-        self._fetch_sd_()
+        if hasattr(self, "save_radar") and self.save_radar: self._fetch_sd_()
         for i in range(self.tsim_start, self.tsim_end):
             if self.verbose: print("\tProcess-", self.start + dt.timedelta(minutes=i))
             self._interpolate_(i)
