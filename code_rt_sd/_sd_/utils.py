@@ -39,3 +39,17 @@ def get_sd_radar(rad):
     r = sd[sd.rad==rad]
     lat, lon, bearing = r["lat"].tolist()[0], r["lon"].tolist()[0], r["ray_bearing"].tolist()[0]
     return lat, lon, bearing
+
+def get_geolocate_range_cells(rad, beam=None):
+    """
+    Fetch geolocate range cells
+    rad: Radar code
+    """
+    fname = "_config_/_geo_/{rad}.geolocate.data.nc".format(rad=rad)
+    gzfname = "_config_/_geo_/{rad}.geolocate.data.nc.gz".format(rad=rad)
+    os.system("gzip -d " + gzfname)
+    rootgrp = netCDF4.Dataset(fname)
+    os.system("gzip " + fname)
+    lat, lon = rootgrp.variables["lat"][:], rootgrp.variables["lon"][:]
+    if beam is not None: lat, lon = lat[beam, :], lon[beam, :]
+    return lat, lon

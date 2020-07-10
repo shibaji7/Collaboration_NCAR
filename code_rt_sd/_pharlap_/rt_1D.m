@@ -24,7 +24,7 @@
 
 %% Close and clear all panes and variables and command line window and load PharLap
 close all
-startup;
+startup
 
 %% initialize
 R12 = 100;
@@ -38,13 +38,16 @@ load(['../' dic 'bearing.mat'])
 load(['../' dic 'tmp.mat'])
 
 %% initialize IRI grid
-plat
 clear iri_options
 iri_options.Ne_B0B1_model = 'Bil-2000';
 tic
-%[iono_pf_grid, iono_pf_grid_5, collision_freq, irreg] = ...
-%			gen_iono_grid_2d(olat, olon, R12, UT, rb, ...
-%			max_range, num_range, range_inc, start_height, ...
-%			height_inc, num_heights, kp, doppler_flag, 'iri2016', ...
-%			iri_options);
+olat, olon, R12, UT, rb,
+max_range, num_range, range_inc, start_height, 
+height_inc, num_heights, kp, doppler_flag, 'iri2016',
+iri_options
+[iono_pf_grid, iono_pf_grid_5, collision_freq, irreg] = ...
+		gen_iono_grid_2d(olat, olon, R12, UT, rb, ...
+		max_range, num_range, range_inc, start_height, ...
+		height_inc, num_heights, kp, doppler_flag, 'iri2016', ...
+		iri_options);
 toc

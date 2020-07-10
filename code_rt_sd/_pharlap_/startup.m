@@ -1,1 +1,1 @@
-addpath(genpath('/home/shibaji7/PHARLAP_SAMI_INTG/pharlap_4.1.3'))
+addpath(genpath([pwd '/pharlap_4.1.3']))

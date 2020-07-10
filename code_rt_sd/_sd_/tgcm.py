@@ -130,18 +130,21 @@ class TGCM(object):
                 x = gc.destination(p, bearing, distance=d)
                 lats.append(x[0])
                 lons.append(x[1])
+            rinc = dist[1]-dist[0]
             m["dist"], m["lat"], m["lon"] = dist, np.array(lats), np.array(lons)
-            m["olat"], m["olon"], m["rb"], m["num_range"], m["max_range"] = lat, lon, bearing, self.nmrange, self.mrange
+            m["olat"], m["olon"], m["rb"], m["num_range"], m["max_range"], m["range_inc"] = lat, lon, bearing, self.nmrange, self.mrange, rinc
+            m["start_height"], m["height_inc"], m["num_heights"] = self.sheight, self.hinc, len(np.arange(self.sheight,self.eheight,self.hinc))
             m["freq"], m["tol"], m["nhops"] = self.frequency, 1e-7, 1
             savemat(fname, m)
         return
 
     def _compute_(self, i):
         """ Compute RT using Pharlap """
+        u = self.start + dt.timedelta(minutes=i)
         dic = "_data_/_sim_/{dn}/{rad}/".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad)
-        cmd = "cd _pharlap_/;\
-                matlab -nodisplay -nodesktop -nosplash -nojvm -r \"rad='{rad}';dic='{dic}';bm='{bm}';ti={ti};rt_1D;exit;\"".format(
-                       rad=self.rad, dic=dic, bm=self.bmnum, ti=i)
+        cmd = "cd _pharlap_;\
+                matlab -nodisplay -nodesktop -nosplash -nojvm -r \"UT=[{ut}];rad='{rad}';dic='{dic}';bm='{bm}';\
+                ti={ti};rt_1D;exit;\"".format(ut=u.strftime("%Y %m %d %H %S"),rad=self.rad, dic=dic, bm=self.bmnum, ti=i)
         os.system(cmd)
         os.remove(dic + "tmp.mat")
         return
