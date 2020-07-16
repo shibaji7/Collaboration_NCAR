@@ -1,0 +1,25 @@
+1. PHaRLAP
+----------
+Please add the following acknowledgement to any published material which
+contains results obtained using this toolbox:
+
+"The results published in this paper were obtained using the HF propagation
+toolbox, PHaRLAP, created by Dr Manuel Cervera, Defence Science and Technology
+Group, Australia (manuel.cervera@dsto.defence.gov.au). This toolbox is 
+available by request from its author."
+
+2. IRI
+------ 
+The International Reference Ionosphere (IRI) is supplied with PHaRLAP. Matlab
+mex wrappers have been supplied for the convenient usage of IRI with PHaRLAP. If
+IRI is used then please acknowledge appropriately. Please see the IRI web sites
+http://irimodel.org and http://IRI.gsfc.nasa.gov for futher detail. Please read
+the IRI License in <pharlap>/dat/iri2016/00_iri2012-License.txt
+
+3. ITU noise
+------------
+The International Telecommunications Union Recommendation ITU-R P.372-10
+(10/2009) for radio noise is included with PHaRLAP. If ITU noise is used then
+please acknowledge its use in any publications. Documentation for the ITU noise
+recomendation may be found in
+<pharlap>/dat/ccir_noise/R-REC-P.372-10-200910-I!!PDF-E.pdf 

@@ -13,7 +13,7 @@ __status__ = "Research"
 
 import os
 import sys
-sys.path.append("_sd_/")
+sys.path.append("sd/")
 import datetime as dt
 import argparse
 from dateutil import parser as dparser
@@ -34,7 +34,7 @@ if __name__ == "__main__":
                 type=dparser.isoparse)
         parser.add_argument("-e", "--end", default=dt.datetime(2015,3,11,16,25), help="End date (default 2015-3-11T16:25)",
                 type=dparser.isoparse)
-        parser.add_argument("-rd", "--save_radar", action="store_true", help="Save riometer data (default False)")
+        parser.add_argument("-rd", "--save_radar", action="store_false", help="Save riometer data (default True)")
         parser.add_argument("-ps", "--plot_summary", action="store_true", help="Plot summary report (default False)")
         parser.add_argument("-sr", "--save_result", action="store_false", help="Save results (default True)")
         parser.add_argument("-c", "--clear", action="store_true", help="Clear pervious stored files (default False)")
@@ -54,8 +54,8 @@ if __name__ == "__main__":
             print("\n Parameter list for simulation ")
             for k in vars(args).keys():
                 print("     " , k , "->" , str(vars(args)[k]))
-        if args.model: TGCM(args)._exe_()
+        if args.model == "tgcm": TGCM(args)._exe_()
         print("")
-        if os.path.exists("_sd_/__pycache__/"):
-            os.system("rm -rf _sd_/__pycache__/")
+        if os.path.exists("sd/__pycache__/"):
+            os.system("rm -rf sd/__pycache__/")
             os.system("rm -rf *.log")

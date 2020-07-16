@@ -1,0 +1,726 @@
+V4.1.3 (2016-10-14)
+--------------------
+Built against matlab R2016a (Win32 built against matlab R2015b).
+Fortran compiled with Intel Fortran Parallel Studio 2017
+
+Fixed bug in raytrace_3d and raytrace_3d_sp which caused raytracing to stop 
+erroneously with ray_flag = -3 (ray exited the ionospheric grid) if the ray
+crossed the 180 (or -180) degree longitude meridian. 
+
+
+V4.1.2 (2016-08-24)
+--------------------
+Built against matlab R2016a (Win32 built against matlab R2015b).
+Fortran compiled with Intel Fortran Parallel Studio 2016 update 3. 
+
+Fixed bug in raytrace_3d_sp where the optional ray_state_vec output structure
+was not being correctly populated.
+
+
+V4.1.1 (2016-07-08)
+--------------------
+Built against matlab R2016a (Win32 built against matlab R2015b).
+Fortran compiled with Intel Fortran Parallel Studio 2016 update 3.
+
+Added new example routine: NRT_sp_comparison.m
+
+Fixed bug in calculation of ground range by spherical Earth 3D NRT -
+raytrace_3d_sp: an Earth radius of 6378.137km (the equatorial radius) was used
+instead of the user specified value.
+
+
+V4.1.0 (2016-07-07)
+--------------------
+Built against matlab R2016a (Win32 built against matlab R2015b).
+Fortran compiled with Intel Fortran Parallel Studio 2016 update 3.
+
+The 2D raytrace routines (raytrace_2d and raytrace_2d_sp) are now
+multi-threaded. These routines now allow multiple rays to be input so that the
+computational load is spread over multiple CPU cores. The output is now a 1 X M
+structure containing 
+the information for each of the rays (total of M rays). Existing code relying on
+raytrace_2d or raytrace_2d_sp will have to be updated to accommodate the new
+format of the output. Alternatively, create an environment variable
+'PHARLAP_OLD_FORMAT_2D' and set it to 'true' to enable backwards compatibility
+for old code which inputs only a single ray. Note: setting this environment
+variable will not affect the output of multi-ray calls to ratrace_2d - new and
+upgraded code relying on the multi-threaded features will run OK. 
+
+Fixed bug in raytrace_3d and raytrace_3d_sp which caused Doppler shift to not be
+returned in the ouptut fields. Corrected error in Doppler shift calculation.
+
+Fixed bug in raytrace_2d where there was a minor error in the application of the
+WGS84 coordinate conversion. 
+
+New ray_test3.m, ray_test4.m and NRT_comparison.m routines.
+
+Absorption routine abso_bg now uses IGRF2016 for magnetic field.
+
+IRI2016: The F1 model was controlled by 2 fields in the iri_options structure
+(iri_options.F1_model and iri_options.F1_type). Each field could take two
+values to produce three F1 model options. This was a clumsy implementation and
+has been rationalised: The field F1_type has been removed and the remaining
+iri_options.F1_model can now take three values to control the IRI F1 model (see
+iri2016.m help file for details). 
+
+
+V4.0.0  (2016-05-06)
+--------------------
+Built against matlab R2015b.
+Fortran compiled with Intel Fortran Parallel Studio 2016 update 3.
+
+The 3D raytrace routines (raytrace_3d and raytrace_3d_sp) are now multi-threaded.
+These routines now allow multiple rays to be input so that the computational load
+is spread over multiple CPU cores. The output is now a 1 X M structure containing
+the information for each of the rays (total of M rays). Existing code relying on
+raytrace_3d or raytrace_3d_sp will have to be updated to accommodate the new
+format of the output. Alternatively, create an environment variable
+'PHARLAP_OLD_FORMAT_3D' and set it to 'true' to enable backwards compatibility
+for old code which inputs only a single ray. Note: setting this environment
+variable will not affect the ouput of multi-ray calls to ratrace_2d - new and
+upgraded code relying on the multi-threaded features will run OK. 
+
+Added extra output fields to the ray_path_data output of raytrace_2d and
+raytrace_2d_sp. Raytracing now quits when the ray exceeds the maximum height of
+the ionospheric grid (instead of 1000km) for  raytrace_2d and raytrace_2d_sp.
+
+IRI2016 added. Increased flexibility in the way IRI is driven - it now accepts
+all possible inputs.
+
+IRI indices files ig_rz.dat and apf107.dat updated.
+
+Updated gen_iono_grid_2D and gen_iono_grid_3D to use IRI2016.
+
+NRLMSIS00 mex wrapper still links to subroutines in IRI2012 - however these
+routines have not changed in IRI2016
+
+Fixed bug in the ois_synth.m and ois_synth_mh.m examples (introduced in V3.7.0)
+regarding how how the geomagnetic O-X correction to the 2D raytrace was being
+applied. 
+
+Updated all examples to use IRI2016 and the multi-threaded raytrace_3d.
+
+
+V3.7.1 (2015-09-23)
+-------------------
+Built against matlab R2015b.
+
+Added routine (raytrace_2d_gm.m) to perform a geomagnetic O-X correction for a
+2D raytrace.
+
+Fixed bug where call to iri2011 would cause Matlab to crash if the environment
+variable DIR_MODELS_REF_DAT was incorrectly defined.
+
+Fixed bug where the iono_extra output of iri2012 was a 1000 element array
+instead of 100. The extra elements contained random meaningless values.
+
+
+V3.7.0 (2015-07-06)
+-------------------
+Built against matlab R2015a.
+
+Added routine (gm_freq_offset.m) to calculate the approximate geomagnetic O-X
+mode frequency split (MHz) for a specified propagation path.
+
+Fixed error in raytrace_3d_sp where ground_range was output in units of
+1000km's instead of km.
+
+Fixed bug where raytrace_3d and ray_trace_3d_sp could (under very rare
+conditions) cause a floating divide by zero and cause Matlab to crash
+
+Fixed bug where ode solver would fail to converge (under very rare conditions)
+which would cause problems for the ray solution.
+
+Updated IRI2012 to the latest version. Now users can specify if the magnetic
+storm model is on or off. The model for the bottomside ionospheric profile is
+now able to be selected. The model for the D region is now able to be selected.
+
+Updated ITU noise recommendation documentation to
+R-REC-P.372-10-200911-I!!PDF-E.pdf
+
+Minor modification to plot_ray_iono_slice.m to limit the size of the displayed
+figure window on large screens when using software opengl. This is to mitigate
+framebuffer issues.
+
+
+V3.6.2 (2015-05-04)
+-------------------
+Built against matlab R2015a.
+
+Mex for 32-bit Windows are now provided.
+
+
+V3.6.1 (2015-04-28)
+-------------------
+Built against matlab R2015a.
+
+Bugfix - Matlab clear command was not freeing memory taken by ionospheric grid
+after call to raytrace_3d and raytrace_3d_sp.
+
+Bugfix - Incorrect colorbar labeling in ois_synth and ois_synth_mh under matlab
+versions R2014a and earlier fixed.
+
+
+V3.6.0 (2015-04-24)
+-------------------
+Built against matlab R2015a.
+
+Created a spherical Earth version of raytrace_3d (raytrace_3d_sp).
+
+Modified iri2012 and iri2012_firi matlab wrappers to allow user input layer
+heights up to 1000km (previous max. height was 500km).
+
+Updated raytrace_3d to allow larger ionospheric grids. Grid sizes up to 
+701 lats X 701 lons X 401 heights are allowed (from 701 X 701 X 301).
+
+Updated help file for abso_bg.m - included references and brief description of
+the George and Bradley absorption model together with its limitations.
+Updated help file (fixed typos) for raytrace_3d.
+
+Minor fixes to correct colorbar labeling errors in ois_synth and ois_synt_mh
+due to changes in Matlab R2014b and later. 
+
+
+V3.5.4 (2014-09-18)
+-------------------
+Built against matlab R2014a.
+
+Updated help files for raytrace_2d, radtrace_3d and gen_iono_grid_2d.m
+
+
+V3.5.3 (2014-07-31)
+-------------------
+Built against matlab R2014a.
+
+Updated raytrace_3d to allow larger ionospheric grids. Grid sizes up to 
+701 lats X 701 lons X 301 heights are allowed (from 201 X 201 X 401).
+ 
+
+V3.5.2 (2014-05-20)
+-------------------
+Built against matlab R2014a. 
+
+Fixed a bug which caused Matlab (64bit Windows only) to crash if an error message 
+was issued for incorrect use of PHaRLAP routines or missing reference data files.
+
+The bss_synth.m example code now uses iri2012 for generation of the ionosphere. 
+Handling of the flux tubes improved in bss_synth.m example code.
+
+
+V3.5.1 (2014-03-28)
+-------------------
+Built against matlab R2013b. 
+
+Added check of inpupts to raytrace_3d to make sure that the start height of ray
+tracing is below the ionosphere. (Ray tracing can still be started inside the
+ionosphere. However, for this case the initial state vector of the ray must be
+user specified - the help file has been updated to make this clear). 
+
+Fixed typo in raytrace_3d.m help file - incorrect units were used for output
+ray_path_data(13, :).
+
+
+V3.5.0 (2013-12-30)
+-------------------
+Built against matlab R2013a. 
+
+Added the capability to call IRI2012 with user specified ionospheric layer
+parameters.
+
+Added DISCLAIMER.txt file and updated ACKNOWLEDGEMENT.txt.
+
+
+V3.4.6 (2013-10-31)
+-------------------
+Built against matlab R2013a. 
+
+Fixed bug which potentially could cause a problem when calling IRI2012. 
+
+
+V3.4.5 (2013-10-10)
+-------------------
+Built against matlab R2013a. 
+
+Updated header/comment block of noise_ccir.m to make it clear 1. that the
+component of the ITU noise returned is the atmospheric component and 2. how to
+calculate and add in the galactic and man-made components if required.
+
+
+V3.4.4 (2013-09-17)
+-------------------
+Built against matlab R2013a. 
+
+Fixed bug introduced in V3.4.3 which could cause a segfault when using
+raytrace_2d and raytrace_2d_sp.
+
+
+V3.4.3 (2013-08-04)
+-------------------
+Built against matlab R2013a. 
+
+Increased the maximum number of points allowed in ray (from 10000 to 20000)
+before raytracing engines exit. Fixed bug in raytrace_3d related to the check for
+erroneous inputs.
+
+
+V3.4.2 (2013-03-22)
+-------------------
+Built against matlab R2012b. 
+
+Fixed non-convergent solution bug in latlon2raz coordinate conversion routine
+for non-spherical geoids (eg. WGS84) which occurred near the antipodal
+point. This caused Matlab to hang when raytracing past the antipodal point with 
+raytrace_2d. This routine now quits before reaching this point. This bug does
+not affect raytrace_2d_sp or raytrace_3d. 
+
+
+V3.4.1 (2013-02-19)
+-------------------
+Built against matlab R2012b. 
+
+Updated help files and fixed a memory buffer overflow bug in raytrace_2d and
+raytrace_2d_sp which could cause a crash for a large number of hops (> 4).
+
+Added a new example - multi-hop OIS synthesis  
+
+
+V3.4.0 (2013-01-17)
+-------------------
+Built against matlab R2012b. 
+
+Fixed help file for igrf2011. Fixed bug which caused gen_iono_grid_3d.m to crash
+when ionospheric profile 'iri2007' was specified. Fixed bug which caused 
+ray_test_3d.m to stop working when parallel computing toolbox was used with
+Matlab R2012b. 
+
+The functions raytrace_2d, raytrace_2d_sp and raytrace_3d are now able to accept 
+the min/max stepsizes in addition to tolerance to control the raytrace ODE
+solver precision. The previous behaviour of specifing tolerance only has been
+preserved for backward compatibility.
+
+Improved speed of raytrace_2d (~ 2.5 times faster) by using faster WGS84
+coordinate conversion routine. Results for a ray with end point at a ground
+range of ~ 2000km will differ by ~ 0.5m from previous version.
+
+
+V3.3.0 (2012-12-04)
+-------------------
+Built against matlab R2012b. 
+
+Added routines to call IRI2012 using the FIRI rocketsonde-based lower ionosphere 
+model. (L. Pederick)
+
+
+V3.2.2 (2012-11-14)
+-------------------
+Built against matlab R2012b.
+
+Improved coordinate conversion Matlab functions xyz2ENU.m and ENU2xyz.m to allow
+inputs to be arrays.
+
+
+V3.2.1 (2012-10-12)
+-------------------
+Built against matlab R2012a.
+
+Added an additional coordinate conversion Matlab function (xyz2ENU.m). Minor
+code tidy-ups.
+
+
+V3.2.0 (2012-09-12)
+-------------------
+Built against matlab R2012a.
+
+Added IRI2012, IGRF2011 and NRLMSISe-00 models.  (L. Pederick)
+Modified gen_iono_grid_2d and gen_iono_grid_3d to allow user to select the new 
+IRI and IGRF models.
+
+
+V3.1.1 (2012-05-04)
+-------------------
+Built against matlab R2012a.
+
+Fixed bug in power calculation in ois_synth.m example routine.
+
+
+V3.1.0 (2012-03-08)
+-------------------
+Built against matlab R2012a.
+
+Fixed error in raytrace_2d and raytrace_2d_sp where focussing could become too
+large at the leading edge. Minor corrections to comment blocks. Dropped linux
+32-bit version. Added Windows 64-bit version. 
+
+Deleted old noise_ccir code and replaced with updated noise model from
+International Telecommunication Union Recommendation ITU-R SG3 NOISBW
+Recommendation ITU-R P.372-10. (M. Turley)
+
+
+V3.0.6 (2011-10-19)
+-------------------
+Built against matlab R2011b.
+
+Corrected the 2D raytracing routines which were returning the square of the 
+plasma frequency at the ray's apogee instead of plasma frequency. Corrected plot
+title of ois_synth.m example routine.
+
+
+V3.0.5 (2011-10-18)
+-------------------
+Built against matlab R2011b.
+
+Modified land_sea.m to allow arguments to be equal sized arrays (D. Netherway)
+
+
+V3.0.4 (2011-10-07)
+-------------------
+Built against matlab R2011b.
+
+Minor code tidy-ups.
+
+
+V3.0.3 (2011-09-30)
+-------------------
+Built against matlab R2011b.
+
+Fixed bug in abso_bg (absorption calculated routine). The bug was introduced in 
+V3.0.0-RC2. This bug caused the electron gyro-frequency to be set to zero in 
+abso_bg with the consequence that the O and X mode absorptions were identical.
+
+The 2D raytracing routines now return the plasma frequency at the ray's apogee.
+
+
+Fixed bug in 
+V3.0.2 (2011-08-10)
+-------------------
+Built against matlab R2011a.
+
+Fixed bug in calculation of group path, phase path, and geometrical distance
+which reduced their accuracy for O and X mode rays (no-field case was not 
+affected).
+
+V3.0.1 (2011-06-30)
+-------------------
+Built against matlab R2011a.
+
+1. Fixed bugs with example code viz. ray_test_3d.m and ois_synth.m. 
+2. Dummy and NULL values are now assigned as IEEE NaN.
+
+V3.0.0 (2011-05-27)
+-------------------
+Built against matlab R2010b.
+
+V3.0.0 final release version
+
+Changes from final release candiate: Added extra raytracing indicator to output
+ray_label. Minor code tidy-up.
+
+
+V3.0.0-RC3 (2011-05-17)
+-------------------
+Built against matlab R2010b.
+
+Third release candidate of V3.0.0
+
+Improved efficiency of handling the ionospheric and geomagnetic grids for the
+various numerical raytracing engines.
+
+
+V3.0.0-RC2 (2011-02-23)
+-------------------
+Built against matlab R2010b.
+
+Second release candidate of V3.0.0
+
+Improved raytracing precision for all engines via more efficient ionospheric
+grid interpolation in height. Improved error handling. 
+
+
+V3.0.0-RC1 (2010-11-01)
+-------------------
+Built against matlab R2010a.
+
+First release candidate of V3.0.0
+
+Added new example - 3D NRT through tilted ionosphere. Tweaked the step-size
+limits for the 3D NRT to improve precision. Minor speed gains in 3D NRT with
+code improvements. Fixed bug in raytrace_2d relating to the WGS84 coordinate 
+transformation.
+
+
+V3.0.0-BETA4 (2010-07-30)
+-------------------
+Built against matlab R2010a.
+
+Bug fixes:
+1. The generation of the ionospheric grid for the "chapman_fllhc" (Chapman
+   layers with the Chris Coleman FIRIC low-latitude height correction) did not 
+   apply the low-latitude height correction for the ionosphere generated 5 
+   minutes later. This is now corrected.
+2. The ODE solvers could not handle NaNs returned by the error estimate. The 
+   consequence of this was to cause the step size to become the maximum allowed 
+   value. The ODE solvers can now handle (removes) NaNs in the error estimate.
+
+
+V3.0.0-BETA3 (2010-06-28)
+-------------------
+Built against matlab R2010a.
+
+Fixed forward scattering loss calculation bug. Now calculates wave polarization 
+along ray path. Also returns the angle between wave-normal and the magnetic field
+and the angle between wave-normal and the ray direction at point along the ray
+path.
+
+V3.0.0-BETA2 (2010-04-30)
+---------------------------
+Built against matlab R2009b.
+
+THIS ENTRY DESCRIBES THE CURRENT STATUS OF THE 3.0.0 DEVELOPMENT. IT WILL
+DISSAPEAR IN THE FINAL RELEASE.
+
+Fixed incorrect group path calculation in raytrace_3d. Improved speed of
+raytrace_3d. Added new raytrace engine: raytrace_2d_sp. This is a 2D raytrace
+engine which uses a spherical Earth coordinate system.
+
+
+V3.0.0-BETA1 (2009-12-16)
+---------------------------
+Built against matlab R2007b.
+
+THIS ENTRY DESCRIBES THE CURRENT STATUS OF THE 3.0.0 DEVELOPMENT. IT WILL
+DISSAPEAR IN THE FINAL RELEASE.
+
+First working version of full 3D magneto-ionic raytracing engine - raytrace_3d.
+Focussing effects not yet implemented. Ionospheric and magnetic field grid
+generation routines included, gen_iono_grid_3d and gen_firic_grid_3d, as well as
+example routine, ray_test_3d.m
+
+V3.0.0-ALPHA5 (2009-09-14)
+---------------------------
+Built against matlab R2007b.
+
+THIS ENTRY DESCRIBES THE CURRENT STATUS OF THE 3.0.0 DEVELOPMENT. IT WILL
+DISSAPEAR IN THE FINAL RELEASE.
+
+Minor modification to font sizes in plot_iono_slice.m to improve display on
+small screens. 
+
+Added julday.m to calculate julian day number.
+
+Corrected error in implementation of Bradley-George absorption routine which
+could lead users to apply this routine incorrectly. Updated ois_synth.m and
+bss_synth.m accordingly.
+
+V3.0.0-ALPHA4 (2009-03-19)
+---------------------------
+Built against matlab R2007b.
+
+THIS ENTRY DESCRIBES THE CURRENT STATUS OF THE 3.0.0 DEVELOPMENT. IT WILL
+DISSAPEAR IN THE FINAL RELEASE.
+
+Fixed several bugs where some variables in elec_dens_interp.for were not
+initialised under certain conditions.
+
+Removed Intel Fortran specific code (structures and environment variable
+read routine) and replaced with generic fortran95 equivalents.
+
+Makefiles modified to compile with 03 optimisation -> ~ 2x speedup for
+raytrace_2d.for
+
+The mex opotions file mexopts_unix.bat has been modified: the linker for linux
+mex files is now gcc (instead of ifort) which is able to link the Intel Fortran
+libraries staticly. Thus the Intel Fortran shared libraries no longer are
+required to be distributed with pharlap.
+
+
+V3.0.0-ALPHA3 (2008-12-12)
+---------------------------
+Built against matlab R2007b.
+
+THIS ENTRY DESCRIBES THE CURRENT STATUS OF THE 3.0.0 DEVELOPMENT. IT WILL
+DISSAPEAR IN THE FINAL RELEASE.
+
+Merged in changes from V2.3.0a
+
+New ionospheric generations routines based on IRI2007. New geomagnetic field
+generation routines based on the IGRF model distributed with IRI2007.
+
+*** AT PRESENT SPEED OF RAYTACE_2D IS ~ 1/2 THAT OF 2.2.0 ***
+
+
+
+V3.0.0-ALPHA2 (2008-05-12)
+---------------------------
+Built against matlab R2007b.
+
+THIS ENTRY DESCRIBES THE CURRENT STATUS OF THE 3.0.0 DEVELOPMENT. IT WILL
+DISSAPEAR IN THE FINAL RELEASE.
+
+Merged in changes from V2.3.0
+
+*** AT PRESENT SPEED OF RAYTACE_2D IS ~ 1/2 THAT OF 2.2.0 ***
+
+
+V3.0.0-ALPHA1 (2008-05-01) - Branched from V2.2.0
+-------------------------
+Built against matlab R2007b.
+
+THIS ENTRY DESCRIBES THE CURRENT STATUS OF THE 3.0.0 DEVELOPMENT. IT WILL
+DISSAPEAR IN THE FINAL RELEASE.
+
+Major modifications to get ready for PHaRLAP 3.0.0 which will include a 3D
+raytracing engine. Defunct code (doppler.for, chapman.for, mag_field_inter.for,
+bss_synth fortran directory, antenna fortran directory) and includes 
+(iono_structures.fin and iono_structures.h) which where support for old fortran
+bss_synth (defunct and removed) and directional noise models (retained for now
+as not-to-be-built refernce code) are no longer required have been removed
+to tidy up the code base. Inputs to raytrace_2d have changed. Outputs from
+gen_iono_grid_2d changed. Thus code using PHaRLAP 2.2.0 no longer
+compatible with 3.0. Details of the incompatabilities are below. 
+
+Major changes to raytrace_2d:
+1. Magnetic field no longer an input to raytrace_2d - implications for OX
+   splitting estimation - see point 6. below
+2. iono_parameter array no longer an input to raytrace_2d
+3. max_range no longer an input to raytrace_2d - this is now calculated
+   internally from the size/resolution of the ionospheric grid
+4. In order to calculate Doppler shift, the electron density grid 5 minutes
+   later is required to be input. This is instead of using the iono_parameter
+   array.
+5. The collision frequency (used to calculate deviative absorption) is no longer
+   calculated within the Haselgrove equations of raytrace_2d. It is now a
+   required input in the same grid format as the electron density grid.
+6. Consequence of point 1. is that OX splitting estimation is no longer 
+   performed and is not output. The ray_data array where this was passed out is
+   now NULL and reserved for future use. The estimate of OX splitting is easy to
+   calculate after the raytracing has been done and an example is shown in
+   ois_synth.m 
+7. Ionospheric grids may now be larger - upto 2001 x 2001 elements (height vs.
+   range) 
+
+Major changes to gen_iono_grid_2d.m (in support of changes to raytrace_2d):
+1. iono_parameter array is no longer output (defunct)
+2. New outputs are collsion frequency grid (identical format to plasma
+   frequency grid) and plasma frequency 5 minutes later
+
+*** AT PRESENT SPEED OF RAYTACE_2D IS ~ 1/2 THAT OF 2.2.0 ***
+
+
+V2.3.0a  (2008-08-15)
+--------------------
+Built against matlab R2007b.
+Added RELEASE_LIMITATION.txt file.
+
+V2.3.0  (2008-05-14)
+--------------------
+Built against matlab R2007b.
+Added new function: plot_ray_iono_slice.m. This function plots an ionospheric
+slice in an arc (to preserve curved Earth geometry) and overplots rays. The
+examples ray_test1.m and ray_test3.m have been updated to use this
+function. Note - this new function will not work with Matlab 2007a.
+
+V2.2.0a  (2008-05-05)
+--------------------
+Built against matlab R2007b.
+Minor update to makefiles to enable easier building on Mac OS X and Windows.
+
+V2.2.0  (2008-05-01)
+--------------------
+Built against matlab R2007b.
+Added new examples: bss_synth.m (BS Ionogram synthesis), ray_test1.m (simple 
+multi-hop ray trajectories showing low- high-rays, penetration, TE modes, and 
+ducting) and ray_test3.m (ducted ray trapped and becomes evanescent). The 
+original example ray_test.m (showing how to modify the ray_state vector) has 
+been renamed to ray_test2.m. 
+
+Fixed the following bugs:
+1. In chapman.m, the F1 layer could have a -ve value calculated for 
+its maximum electron density. If this occurs F1 layer is set to zero and the
+maximum value of the E and F2 layers are recalculated. Thus, ionospehric
+profiles may be produced where the F1 is non-existant but the input foF1
+indicatess that it is. This is a known issue with the Chapman layer approach.
+2. In raytrace_2d, the ray_flag was not being set to 0 if refractive index 
+became -ve (i.e. ray evanescent)
+3. In raytrace_2d, the simple formula for calculation of the final ray elevation
+was used which is correct only if ray has come to ground. This is replaced with
+the general formula so that the correct elevation is calculated if ray did not
+come to ground.
+
+V2.1.1  (2008-04-07)
+------
+Built against matlab R2007b.
+Bugfix release. Fixed bug where TEC calculated in raytrace_2d was not being
+reported in SI units. The chapman.m routine now calculates the maximum value of
+each ionospheric layer to use in the champan layer profile calculation instead
+of the layer critical frequency. Previously the ionospheric content in the F2
+layer would be over-estimated for the case of a strong F1 layer (or weak F2).
+
+V2.1.0  (2008-03-12)
+------
+Built against matlab R2007b.
+No new features added. Modified how FAI irregularity backscatter is handled by
+the 2D NRT routine (raytrace_2d). Previously this could not be turned off, but 
+the Doppler spread calculation could be switched off by setting the 
+no_dop_spread flag. This did not make sense - if there are no irregularities to 
+cause Doppler spread, then there are also none to cause field aligned 
+backscatter. The no_dop_spread flag has been replace by a new flag, viz. 
+irregs_flag. If set then FAI backscatter is turned on and Doppler spread is
+calculated. If not set the FAI backscatter is turned off and Doppler spread is
+not calculated.
+
+V2.0.3  (2007-12-21)
+------
+Built against matlab R2007b.
+Bugfix release. Fixed error in conversion of elevation wrt WGS84 geoid to 
+elevation wrt spherical Earth surface. Output elevation now WGS84 - it was 
+(incorrectly) spherical. Corrected documentation error.
+
+V2.0.2  (2007-11-30)
+------
+Built against matlab R2007b.
+Bugfix release. Fixed minor issue with calculation of Bradley-George
+non-deviative ionosopheric absorption (abso_bg.for). Updated documentation.
+
+V2.0.1a (2007-11-21)
+-------
+Built against matlab R2007b.
+Ported to Win32 platform. Modified build scripts to allow build on Windows XP.
+
+V2.0.1  (2007-11-16)
+------
+Built against matlab R2007b.
+Bugfix release and ported to Mac Intel platform.
+
+V2.0.0  (2007-11-09)
+------
+Built against matlab R2007b.
+New major release. Linux Intel x86 and x86_64 platforms.
+ - Now uses WGS84 coordinate system.
+ - Ray path is returned instead of being written to file.
+ - Ray state vector returned if requested.
+ - Modified ray state vector able to be input.
+ - Employs modern ODE solver (Bocacki and Shampine's embedded 4/5th order 
+   8-step Runge-Kutta algorithm).
+ - Significant speed improvements.
+ - Additional exception testing and diagnostic output.
+
+Note: due to changes to inputs / outputs in the core raytrace routine, code 
+written for V1.0 series will break with this version. See help files for details
+
+V1.0.3  (2007-02-24)
+------
+Bugfix release - corrected problem where raypath datafile was not closed
+correctly 
+
+V1.0.2  (2006-09-28)
+------
+Bugfix release
+
+V1.0.1  (2006-09-05)
+------
+Bugfix release
+
+V1.0.0  (2006-06-09)
+------
+Initial version of raytracing tool box. Linux Intel x86 and MS windows Win32 
+platforms.

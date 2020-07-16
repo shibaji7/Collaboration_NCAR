@@ -35,7 +35,7 @@ def geolocate_radar_fov(rad):
             d = utils.geoPack.calcDistPnt(f.latFull[b,g], f.lonFull[b,g], 300,
                     distLat=f.latFull[b, g + 1], distLon=f.lonFull[b, g + 1], distAlt=300)
             azm[i,j] = d["az"]
-    fname = "_config_/_geo_/{rad}.geolocate.data.nc".format(rad=rad)
+    fname = "config/geo/{rad}.geolocate.data.nc".format(rad=rad)
     rootgrp = Dataset(fname, "w", format="NETCDF4")
     rootgrp.description = """ Fitacf++ : Geolocated points for each range cells. """
     rootgrp.history = "Created " + time.ctime(time.time())
@@ -60,7 +60,7 @@ def geolocate_radar_fov(rad):
     return
 
 if __name__ == "__main__":
-    os.system("rm -rf _config_/_geo_/*")
+    os.system("rm -rf config/geo/*")
     parser = argparse.ArgumentParser()
     parser.add_argument("-r", "--rad", default=None, help="SuperDARN radar code")
     args = parser.parse_args()

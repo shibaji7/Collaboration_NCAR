@@ -1,0 +1,59 @@
+1. Create a directory (eg C:\pharlap) to place the downloaded pharlap.zip file
+   and extract the software
+
+2. Define the environment variable DIR_MODELS_REF_DAT to point to the reference 
+   data files. These files live in the 'dat' subdirectory (eg C:\pharlap\dat). 
+   
+   a. Put the following command in your matlab startup file:
+
+           setenv('DIR_MODELS_REF_DAT', '<path to data>')
+
+      where <path to data> is the directory where the reference data lives
+      (e.g. ~/pharlap/dat or C:\pharlap\dat)
+
+      OR...
+ 
+    b. Set the environment variable at the system level. 
+       	  (i)  Windows 7: Open control panel, search for "environment variable",
+                          click on the resultant link, click New and enter the
+                          details
+          (ii) Linux / Mac OSX : edit your .bash_profile appropriately 
+
+3. Note that if Matlab is run over a network on a different node to where
+   PHaRLAP is installed then routines which rely on the reference data (e.g. the
+   ionospheric, geomagnetic and ground scattering loss models) may run
+   substantially slower.
+
+4. Start matlab and add the installation directory (e.g. C:\pharlap) the path. 
+   Make sure that you include the subdirectories!
+
+5. At the Matlab prompt type:
+     "help pharlap" to obtain top-level help and a list of routines. 
+     "help <routine>" to obtain help on a specific routine
+
+6. Example code resides in the directory :
+        <pharlap install dir>/src/matlab/examples
+
+7. PHaRLAP may not run with a different version of Matlab from that which it
+   was compiled. See RELEASE_NOTES.txt for details on the version of Matlab
+   to use with PHaRLAP.
+
+   If you do not have access to or are unable to install the relevant version
+   of Matlab you can try installing the appropriate Intel Fortran redistributable
+   libraries available from here:
+   https://software.intel.com/en-us/articles/intelr-composer-redistributable-libraries-by-version
+
+If you have any problems contact:
+
+Dr Manuel Cervera
+High Frequency Radar Branch
+National Security and Intelligence, Surveillance and Reconnaissance Division
+Defence Science and Technology Group
+200 Labs, West Avenue, PO Box 1500, Edinburgh, SA 5111
+Australia
+
+email:  manuel.cervera@dsto.defence.gov.au
+Phone:	+61 8 738 97163
+Fax:	+61 8 738 96673
+Mobile:	+61 0413 842 043
+
