@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 # Local data
-code_rt_sd/_data_/*
+code_rt_sd/data/*
 
 # C extensions
 *.so
