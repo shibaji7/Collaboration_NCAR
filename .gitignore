@@ -5,6 +5,12 @@ __pycache__/
 
 # Local data
 code_rt_sd/data/*
+*.nc
+*.png
+*.mat
+*.csv
+*.png
+*.jpg
 
 # C extensions
 *.so
