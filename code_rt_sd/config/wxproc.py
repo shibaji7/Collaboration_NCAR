@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""proc.py: module is dedicated to download and process the TIME-GCM data."""
+"""wxproc.py: module is dedicated to download and process the WACCMX data."""
 
 __author__ = "Chakraborty, S."
 __copyright__ = "Copyright 2020, SuperDARN@VT"
@@ -25,28 +25,26 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-ev", "--event")
     parser.add_argument("-dn", "--date")
-    parser.add_argument("-rn", "--run")
     args = parser.parse_args()
     event, date = dt.datetime.strptime(args.event, "%Y.%m.%d.%H.%M"), dt.datetime.strptime(args.date, "%Y.%m.%d.%H.%M")
-    ldat = Dataset("tmp/tgcm.nc", "w", format="NETCDF4")
-    cases = ["1","2"]
-    fname = "/glade/work/shibaji/timegcm/cases/{dn}-{r}.{c}/timegcm_trunk/timegcm-ch/timegcm.s_{doy}.nc"
+    ldat = Dataset("tmp/waccmx.nc", "w", format="NETCDF4")
+    cases = ["flr","dly"]
+    fname = "/glade/scratch/shibaji/archive/{ev}.{case}-FXHIST-f19_f19/atm/hist/{ev}.{case}-FXHIST-f19_f19.cam.h1.{dn}-{tm}.nc"
     t = []
-    zg = {"dly": np.zeros((1, 49, 36, 72)), "flr": np.zeros((1, 49, 36, 72))}
-    ne = {"dly": np.zeros((1, 49, 36, 72)), "flr": np.zeros((1, 49, 36, 72))}
-    cds = {"1":"dly","2":"flr"}
+    zg = {"dly": np.zeros((1, 126, 96, 144)), "flr": np.zeros((1, 126, 96, 144))}
+    ne = {"dly": np.zeros((1, 126, 96, 144)), "flr": np.zeros((1, 126, 96, 144))}
     for case in cases:
         tm = int((date - date.replace(hour=0, minute=0, second=0)).total_seconds()/(24*60))*(24*60)
-        f = fname.format(dn=event.strftime("%Y.%m.%d.%H.%M"), c=case, r=args.run, doy=date.strftime("%j"))    
+        f = fname.format(ev=event.strftime("%Y.%m.%d.%H.%M"), case=case, dn=event.strftime("%Y-%m-%d"), tm="%05d"%tm)    
         rdat = Dataset(f)
         print(" Fname - ",f)
         lat, lon, lev = rdat.variables["lat"], rdat.variables["lon"], rdat.variables["lev"]
         tx = num2date(rdat.variables["time"][:], units=rdat.variables["time"].units)
         tx = np.array([x._to_real_datetime() for x in tx]).astype("datetime64[ns]")
-        tx = [dt.datetime.utcfromtimestamp(x.astype(int) * 1e-9) - dt.timedelta(days=1) for x in tx]
+        tx = [dt.datetime.utcfromtimestamp(x.astype(int) * 1e-9) for x in tx]
         tm = tx.index(date)
-        zg[cds[case]][0,:,:,:] = rdat.variables["ZG"][tm,:,:,:]
-        ne[cds[case]][0,:,:,:] = rdat.variables["NE"][tm,:,:,:]
+        zg[case][0,:,:,:] = rdat.variables["Z3"][tm,:,:,:]
+        ne[case][0,:,:,:] = rdat.variables["EDens"][tm,:,:,:]
     ldat.createDimension("lat", len(lat[:]))
     ldat.createDimension("lon", len(lon[:]))
     ldat.createDimension("lev", len(lev[:]))
@@ -61,4 +59,4 @@ if __name__ == "__main__":
     rZGd[:], rZGf[:], rNEd[:], rNEf[:] = zg["dly"][:], zg["flr"][:], ne["dly"][:], ne["flr"][:]
     ldat.close()
     rdat.close()
-    os.system("gzip tmp/tgcm.nc")
+    os.system("gzip tmp/waccmx.nc")

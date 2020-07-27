@@ -14,7 +14,9 @@ __status__ = "Research"
 import matplotlib
 matplotlib.use("Agg")
 import os
+import datetime as dt
 import pandas as pd
+from pysolar.solar import get_altitude
 
 def create_folder_structures(dn, stn):
     """ Create full folder structures for the simulations """
@@ -56,9 +58,13 @@ def get_geolocate_range_cells(rad, beam=None):
     if beam is not None: lat, lon = lat[beam, :], lon[beam, :]
     return lat, lon
 
-def estimate_rt_doppler(grange, height, ne, ne0, dsec=1., fr=12., dthick=30.):
-    """ Estimate Doppler effects in RT """
-    fne = interp2d(gr, h, ne.T, kind="cubic")
-    fne0 = interp2d(gr, h, ne.T, kind="cubic")
 
-    return d
+def calculate_sza(d, lat, lon, alt=300):
+    """
+    This method is used to estimate the solar zenith angle for a specific date and
+    sepcific location in space. Note that this method uses skyfield api to estimate
+    solar zenith angle. This has been validated against NOAA website values.
+    """
+    d = d.replace(tzinfo=dt.timezone.utc)
+    sza = 90. - get_altitude(lat, lon, d)
+    return sza

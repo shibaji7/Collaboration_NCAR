@@ -35,7 +35,7 @@ kp = 0;
 
 %% load data
 load(['../' dic 'bearing.mat'])
-load(['../' dic 'ne.ti(' num2str(ti) ').bm(' num2str(bm) ').mat'])
+load(['../' dic 'ne.ti(' num2str(ti) ').bm(' num2str(bm) ').' cse '.mat'])
 
 %% initialize IRI grid
 clear iri_options

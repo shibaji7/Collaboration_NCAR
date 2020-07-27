@@ -19,10 +19,11 @@ import argparse
 from dateutil import parser as dparser
 
 from tgcm import TGCM
+from waccmx import WACCM
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser()
-        parser.add_argument("-m", "--model", default="tgcm", help="Model name [tgcm/waccmx] (default tgcm)")
+        parser.add_argument("-m", "--model", default="waccmx", help="Model name [tgcm/waccmx] (default tgcm)")
         parser.add_argument("-r", "--rad", default="bks", help="Radar code (default bks)")
         parser.add_argument("-ev", "--event", default=dt.datetime(2015,3,11,16,22), help="Start date (default 2015-3-11T16:22)",
                 type=dparser.isoparse)
@@ -32,13 +33,14 @@ if __name__ == "__main__":
         parser.add_argument("-te", "--tsim_end", type=int, default=None, help="Minutes to simulate end (1-...) (default None)")
         parser.add_argument("-s", "--start", default=dt.datetime(2015,3,11,16,15), help="Start date (default 2015-3-11T16:05)",
                 type=dparser.isoparse)
-        parser.add_argument("-e", "--end", default=dt.datetime(2015,3,11,16,25), help="End date (default 2015-3-11T16:25)",
+        parser.add_argument("-e", "--end", default=dt.datetime(2015,3,11,16,24), help="End date (default 2015-3-11T16:25)",
                 type=dparser.isoparse)
         parser.add_argument("-rd", "--save_radar", action="store_false", help="Save riometer data (default True)")
         parser.add_argument("-ps", "--plot_summary", action="store_true", help="Plot summary report (default False)")
         parser.add_argument("-sr", "--save_result", action="store_false", help="Save results (default True)")
         parser.add_argument("-c", "--clear", action="store_true", help="Clear pervious stored files (default False)")
         parser.add_argument("-v", "--verbose", action="store_false", help="Increase output verbosity (default True)")
+        parser.add_argument("-a", "--archive", action="store_false", help="Archive and create movies (default True)")
         parser.add_argument("-fr", "--frequency", type=float, default=12., help="Frequency of oprrations in MHz (default 12 MHz)")
         parser.add_argument("-mr", "--mrange", type=float, default=1990., help="Max ground range in km (default 1000 km)")
         parser.add_argument("-nmr", "--nmrange", type=int, default=200, help="Number of steps in ground range (default 101)")
@@ -54,6 +56,7 @@ if __name__ == "__main__":
             print("\n Parameter list for simulation ")
             for k in vars(args).keys():
                 print("     " , k , "->" , str(vars(args)[k]))
+        if args.model == "waccmx": WACCM(args)._exe_()
         if args.model == "tgcm": TGCM(args)._exe_()
         print("")
         if os.path.exists("sd/__pycache__/"):

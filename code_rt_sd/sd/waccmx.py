@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""tgcm.py: module is dedicated to download and process the TIME-GCM data."""
+"""waccmx.py: module is dedicated to download and process the WACCM-X data."""
 
 __author__ = "Chakraborty, S."
 __copyright__ = "Copyright 2020, SuperDARN@VT"
@@ -76,8 +76,8 @@ def _intp_(h, lats, lons, param, hd=[50,300,1], dlat=0.5, dlon=1, scale="log", k
     if v: print("\tHeight convt.")
     return pnew, hx, latx, lonx
 
-class TGCM(object):
-    """ TIME-GCM data download from Cheyenne"""
+class WACCM(object):
+    """ WACCMX data download from Cheyenne"""
 
     def __init__(self, args):
         """ Initialze the parameters """
@@ -111,26 +111,26 @@ class TGCM(object):
 
     def _download_(self, i):
         """ Download the files from """
-        dfname = "data/sim/{dn}/tgcm.{du}.nc.gz".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), 
+        dfname = "data/sim/{dn}/waccmx.{du}.nc.gz".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), 
                 du=(self.start + dt.timedelta(minutes=i)).strftime("%Y.%m.%d.%H.%M"))
         dn = self.start + dt.timedelta(minutes=i)
         if not os.path.exists(dfname):
             if not self.con: self._conn_()
             if self.verbose: print("\n Create SSH.SCP connection, post process, and fetch data.")
             self.ssh.exec_command("mkdir tmp/")
-            self.scp.put("config/proc.py", "tmp/")
-            if self.verbose: print(" Run -", "python tmp/proc.py -ev {ev} -dn {dn} -rn {rn}".format(
+            self.scp.put("config/wxproc.py", "tmp/")
+            if self.verbose: print(" Run -", "python tmp/wxproc.py -ev {ev} -dn {dn}".format(
                 ev=self.event.strftime("%Y.%m.%d.%H.%M"),
-                dn=dn.strftime("%Y.%m.%d.%H.%M"), rn=self.sim_id))
+                dn=dn.strftime("%Y.%m.%d.%H.%M")))
             stdin, stdout, stderr = self.ssh.exec_command("source ncar_tgcm_waccm_proc/ncar/bin/activate"\
-                    "\n python tmp/proc.py -ev {ev} -dn {dn} -rn {rn}".format(ev=self.event.strftime("%Y.%m.%d.%H.%M"),
-                        dn=dn.strftime("%Y.%m.%d.%H.%M"), rn=self.sim_id), get_pty=True)
+                    "\n python tmp/wxproc.py -ev {ev} -dn {dn}".format(ev=self.event.strftime("%Y.%m.%d.%H.%M"),
+                        dn=dn.strftime("%Y.%m.%d.%H.%M")), get_pty=True)
             if self.verbose:
                 for line in iter(stdout.readline, ""):
                     print(line, end="")
             if self.verbose: print(" End run ")
             self.ssh.exec_command("deactivate")
-            self.scp.get("tmp/tgcm.nc.gz", dfname)
+            self.scp.get("tmp/waccmx.nc.gz", dfname)
             self.ssh.exec_command("rm -rf tmp/")
         return
 
@@ -141,12 +141,12 @@ class TGCM(object):
         fname = "data/sim/{dn}/{rad}/ne.ti({ti}).bm({bm}).{case}.mat".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), 
                 rad=self.rad, ti=i, bm=self.bmnum, case=case)
         if not os.path.exists(fname):
-            dfname = "data/sim/{dn}/tgcm.{du}.nc.gz".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"),
+            dfname = "data/sim/{dn}/waccmx.{du}.nc.gz".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"),
                     du=(self.start + dt.timedelta(minutes=i)).strftime("%Y.%m.%d.%H.%M"))
             os.system("gzip -d " + dfname)
             self._nc_ = Dataset(dfname.replace(".gz",""))
             os.system("gzip " + dfname.replace(".gz",""))
-            nex, alts, latx, lonx = _intp_(self._nc_.variables["ZG"+case][0,:,:,:]*1e-5,
+            nex, alts, latx, lonx = _intp_(self._nc_.variables["ZG"+case][0,:,:,:]*1e-3,
                     self._nc_.variables["lat"][:], self._nc_.variables["lon"][:], self._nc_.variables["NE"+case][0,:,:,:], 
                     hd=[self.sheight,self.eheight,self.hinc], 
                     dlat=2, dlon=4, scale="log", kind="cubic", v=self.verbose)
@@ -285,12 +285,12 @@ class TGCM(object):
 
     def _plot_radstn_(self, i):
         """ Plot radar station """
-        fname = "data/sim/{dn}/{rad}/tgcm({i}).png".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad, i=i)
+        fname = "data/sim/{dn}/{rad}/waccmx({i}).png".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad, i=i)
         ij = _get_ij_(self._nc_.variables["lat"][:], self._nc_.variables["lon"][:], self.rlat, self.rlon)
         p = self._nc_.variables["NEd"][0,:,ij[0],ij[1]]
         f = self._nc_.variables["NEf"][0,:,ij[0],ij[1]]
-        pz = self._nc_.variables["ZGd"][0,:,ij[0],ij[1]]*1e-5
-        fz = self._nc_.variables["ZGf"][0,:,ij[0],ij[1]]*1e-5
+        pz = self._nc_.variables["ZGd"][0,:,ij[0],ij[1]]*1e-3
+        fz = self._nc_.variables["ZGf"][0,:,ij[0],ij[1]]*1e-3
         plotlib.plot_radstn(p,f,pz,fz,fname,self.rlat,self.rlon,self.start+dt.timedelta(minutes=i))
         return
 
@@ -311,23 +311,23 @@ class TGCM(object):
         self._close_()
         if hasattr(self, "archive") and self.archive: self._arch_()
         return
-    
+
     def _arch_(self):
         """ Archive the data and create movie """
         print("\n System archiving ...")
-        arc =  "data/sim/{dn}/archive/{rad}/tgcm/".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad)
+        arc =  "data/sim/{dn}/archive/{rad}/waccmx/".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad)
         os.system("rm -rf " + arc)
         os.system("mkdir -p " + arc)
-        os.system("cp -r data/sim/{dn}/{rad}/* {arc}".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"),
+        os.system("cp -r data/sim/{dn}/{rad}/* {arc}".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), 
             rad=self.rad, arc=arc))
-        cmd = "ffmpeg -r 1 -i {arc}/tgcm\(%d\).png -c:v libx264 -vf \
-                'scale=1420:-2,fps=3,format=yuv420p' {arc}/tgcm_edens_rad.mp4".format(arc=arc)
+        cmd = "ffmpeg -r 1 -i {arc}/waccmx\(%d\).png -c:v libx264 -vf \
+                'scale=1420:-2,fps=3,format=yuv420p' {arc}/waccmx_edens_rad.mp4".format(arc=arc)
         os.system(cmd)
         cmd = "ffmpeg -r 1 -i {arc}/rt.ti\(%d\).bm\({bm}\).d.png -c:v libx264 -vf \
-                'scale=1420:-2,fps=3,format=yuv420p' {arc}/tgcm_rt_daily.mp4".format(arc=arc, bm=self.bmnum)
+                'scale=1420:-2,fps=3,format=yuv420p' {arc}/waccmx_rt_daily.mp4".format(arc=arc, bm=self.bmnum)
         os.system(cmd)
         cmd = "ffmpeg -r 1 -i {arc}/rt.ti\(%d\).bm\({bm}\).f.png -c:v libx264 -vf \
-                'scale=1420:-2,fps=3,format=yuv420p' {arc}/tgcm_rt_flare.mp4".format(arc=arc, bm=self.bmnum)
+                'scale=1420:-2,fps=3,format=yuv420p' {arc}/waccmx_rt_flare.mp4".format(arc=arc, bm=self.bmnum)
         os.system(cmd)
         print(" System archived!")
         return

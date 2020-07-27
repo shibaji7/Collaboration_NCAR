@@ -27,7 +27,10 @@ from mpl_toolkits.axisartist.grid_finder import FixedLocator, DictFormatter
 from types import MethodType
 import glob
 import pandas as pd
+from dateutil import tz
 
+
+import utils
 
 def textHighlighted(xy, text, ax=None, color='k', fontsize=None, xytext=(0,0),
         zorder=None, text_alignment=(0,0), xycoords='data', 
@@ -223,7 +226,7 @@ def get_polar(d, Re=6371.):
     r = d.height + Re
     return th, r
 
-def plot_rays(dic, time, ti, beam, maxground=1000, maxalt=500, step=1,
+def plot_rays(dic, time, ti, beam, case, maxground=1000, maxalt=500, step=1,
         showrefract=False, nr_cmap="jet_r", nr_lim=[0.8, 1.], 
         raycolor="0.3", title=False, zorder=2, alpha=1, 
         fig=None, rect=111, ax=None, aax=None):
@@ -261,7 +264,7 @@ def plot_rays(dic, time, ti, beam, maxground=1000, maxalt=500, step=1,
     else:
         if hasattr(ax, "time"): time = ax.time
         if hasattr(ax, "beam"): beam = ax.beam
-    files = glob.glob(dic + "ti({ti}).bm({bm}).elv(*).csv".format(ti=ti, bm=beam))
+    files = glob.glob(dic + "ti({ti}).bm({bm}).elv(*).{case}.csv".format(ti=ti, bm=beam, case=case))
     files.sort()
     for f in files:
         th, r = get_polar(pd.read_csv(f))
@@ -283,7 +286,7 @@ def plot_rays(dic, time, ti, beam, maxground=1000, maxalt=500, step=1,
     else: cbax = None
     ax.beam = beam
     fig = ax.get_figure()
-    fig.savefig(dic + "rt.ti({ti}).bm({bm}).png".format(ti=ti, bm=beam), bbox_inches="tight")
+    fig.savefig(dic + "rt.ti({ti}).bm({bm}).{case}.png".format(ti=ti, bm=beam, case=case), bbox_inches="tight")
     return ax, aax, cbax
 
 def plot_exp_rays(dic, time, beam, cat="bgc", maxground=1000, maxalt=300, step=1,
@@ -319,3 +322,23 @@ def plot_exp_rays(dic, time, beam, cat="bgc", maxground=1000, maxalt=300, step=1
     fig = ax.get_figure()
     fig.savefig(dic + "rt.exp.{cat}.bm({bm}).png".format(cat=cat, bm=beam), bbox_inches="tight")
     return ax, aax, cbax
+
+
+def plot_radstn(p,f,pz,fz,fname,lat,lon,t,zone="America/New_York"):
+    """ Plot radar vertical dataset """
+    fig = plt.figure(figsize=(4,4), dpi=120)
+    ax = fig.add_subplot(111)
+    ax.set_ylabel("Alt. [km]")
+    ax.set_xlabel(r"EDens [$cm^{-3}$]")
+    ax.semilogx(p, pz, "r")
+    ax.semilogx(f, fz, "r--")
+    ax.set_ylim(50, 130)
+    ax.set_xlim(1e2, 1e7)
+    sza = utils.calculate_sza(t, lat, lon, alt=300)
+    l = t.replace(tzinfo=tz.gettz("UTC")).astimezone(tz.gettz("America/New_York"))
+    ax.set_title(r"UT-%s"%(t.strftime("%Y-%m-%d %H:%M")))
+    ax.text(1.05, 0.5, "Loc:(%.1f,%.1f), $\chi$-%.1f, LT-%s"%(lat, lon, sza, l.strftime("%H:%M")), 
+        horizontalalignment="center", verticalalignment="center", transform=ax.transAxes, rotation=90)
+    fig.savefig(fname,bbox_inches="tight")
+    plt.close()
+    return
