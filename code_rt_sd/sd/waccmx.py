@@ -157,8 +157,6 @@ class WACCM(object):
             m["ne"] = ne
             savemat(fname, m)
             self._compute_(i, case)
-            dic = "data/sim/{dn}/{rad}/".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad)
-            plotlib.plot_rays(dic, self.start + dt.timedelta(minutes=i), i, self.bmnum, case)
             if case == "f": self._plot_radstn_(i)
         return
 
@@ -246,13 +244,13 @@ class WACCM(object):
             vd += (0.5 * f * 3e8 / (self.frequency * 1e6))
             vf += _estimate_dop_delh_(d,b)
             itr += 1
-        vd = vd / itr
-        vf = vf / itr
+        self.vd = vd / itr
+        self.vf = vf / itr
         if self.verbose:
             print("\tDoppler velocity at {ev} -> Vd={vd} m/s, Vf={vf} m/s, Vt={vt} m/s".format(ev=
                 (self.start+dt.timedelta(minutes=i)).strftime("%Y-%m-%d %H:%M"), 
-                    vd=np.round(vd,1), vf=np.round(vf,1), vt=np.round(vf+vd,1)))
-        return vd, vf, vd+vf
+                    vd=np.round(self.vd,1), vf=np.round(self.vf,1), vt=np.round(self.vf+self.vd,1)))
+        return
 
     def _compute_(self, i, case="d"):
         """ Compute RT using Pharlap """
@@ -297,6 +295,7 @@ class WACCM(object):
     def _exe_(self):
         """ Execute the RT model and save results"""
         print("\n Start simulation (using Pharlap) ...")
+        dic = "data/sim/{dn}/{rad}/".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad)
         self._nc_ = None
         self._estimate_bearing_()
         if hasattr(self, "save_radar") and self.save_radar: self._fetch_sd_()
@@ -305,7 +304,11 @@ class WACCM(object):
             if self.verbose: print("\tProcess-", self.start + dt.timedelta(minutes=i))
             for c in ["d", "f"]:
                 self._interpolate_(i, c)
-            self._compute_doppler_(i)
+                txt = ""
+                if c == "f":
+                    self._compute_doppler_(i)
+                    txt = r"$V_{d\eta}$=%.1f, $V_{dh}$=%.1f"%(self.vd,self.vf)
+                plotlib.plot_rays(dic, self.start + dt.timedelta(minutes=i), i, self.bmnum, c, txt)
         if self.verbose: print("\n Interpolation completed.")
         if self.verbose: print("\n Processing Doppler.")
         self._close_()

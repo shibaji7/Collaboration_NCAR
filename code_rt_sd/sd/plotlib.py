@@ -226,9 +226,9 @@ def get_polar(d, Re=6371.):
     r = d.height + Re
     return th, r
 
-def plot_rays(dic, time, ti, beam, case, maxground=1000, maxalt=500, step=1,
+def plot_rays(dic, time, ti, beam, case, txt, maxground=1000, maxalt=500, step=1,
         showrefract=False, nr_cmap="jet_r", nr_lim=[0.8, 1.], 
-        raycolor="0.3", title=False, zorder=2, alpha=1, 
+        raycolor="0.3", title=True, zorder=2, alpha=1, 
         fig=None, rect=111, ax=None, aax=None):
     """
     Plot ray paths
@@ -278,8 +278,10 @@ def plot_rays(dic, time, ti, beam, case, maxground=1000, maxalt=500, step=1,
             #_ = lcol.set_array( rays["nr"] )
             _ = aax.add_collection( lcol )
     if title:
-        stitle = ""
+        stitle = "%s UT"%time.strftime("%Y-%m-%d %H:%M")
         ax.set_title( stitle )
+        ax.text(1.05, 0.5, txt, horizontalalignment="center", verticalalignment="center", 
+                transform=ax.transAxes, rotation=90)
     if showrefract:
         cbax = addColorbar(lcol, ax)
         _ = cbax.set_ylabel(r"$\Delta$ f")
@@ -287,6 +289,7 @@ def plot_rays(dic, time, ti, beam, case, maxground=1000, maxalt=500, step=1,
     ax.beam = beam
     fig = ax.get_figure()
     fig.savefig(dic + "rt.ti({ti}).bm({bm}).{case}.png".format(ti=ti, bm=beam, case=case), bbox_inches="tight")
+    plt.close()
     return ax, aax, cbax
 
 def plot_exp_rays(dic, time, beam, cat="bgc", maxground=1000, maxalt=300, step=1,
@@ -321,6 +324,7 @@ def plot_exp_rays(dic, time, beam, cat="bgc", maxground=1000, maxalt=300, step=1
     ax.beam = beam
     fig = ax.get_figure()
     fig.savefig(dic + "rt.exp.{cat}.bm({bm}).png".format(cat=cat, bm=beam), bbox_inches="tight")
+    plt.close()
     return ax, aax, cbax
 
 

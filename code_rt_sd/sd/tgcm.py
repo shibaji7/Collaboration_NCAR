@@ -157,8 +157,6 @@ class TGCM(object):
             m["ne"] = ne
             savemat(fname, m)
             self._compute_(i, case)
-            dic = "data/sim/{dn}/{rad}/".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad)
-            plotlib.plot_rays(dic, self.start + dt.timedelta(minutes=i), i, self.bmnum, case)
             if case == "f": self._plot_radstn_(i)
         return
 
@@ -297,6 +295,7 @@ class TGCM(object):
     def _exe_(self):
         """ Execute the RT model and save results"""
         print("\n Start simulation (using Pharlap) ...")
+        dic = "data/sim/{dn}/{rad}/".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad)
         self._nc_ = None
         self._estimate_bearing_()
         if hasattr(self, "save_radar") and self.save_radar: self._fetch_sd_()
@@ -305,7 +304,11 @@ class TGCM(object):
             if self.verbose: print("\tProcess-", self.start + dt.timedelta(minutes=i))
             for c in ["d", "f"]:
                 self._interpolate_(i, c)
-            self._compute_doppler_(i)
+                txt = ""
+                if c == "f":
+                    self._compute_doppler_(i)
+                    txt = r"$V_{d\eta}$=%.1f, $V_{dh}$=%.1f"%(self.vd,self.vf)
+                plotlib.plot_rays(dic, self.start + dt.timedelta(minutes=i), i, self.bmnum, c, txt)
         if self.verbose: print("\n Interpolation completed.")
         if self.verbose: print("\n Processing Doppler.")
         self._close_()

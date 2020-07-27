@@ -25,7 +25,7 @@ import time
 from superdarn import SuperDARN
 
 
-_I_, _J_, _K_, _L_ = 7, 3, 3, 3
+_I_, _J_, _K_, _L_ = 7, 5, 5, 5
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser()
@@ -64,7 +64,7 @@ if __name__ == "__main__":
             for k in vars(args).keys():
                 print("     " , k , "->" , str(vars(args)[k]))
         if args.plot:
-            dat = Dataset("data/sim/optim.nc")
+            dat = Dataset("config/optim.nc")
             d_ratios = dat.variables["d_ratio"][:]
             d_rtimes = dat.variables["d_rtime"][:]
             f_ratios = dat.variables["f_ratio"][:]
@@ -79,15 +79,18 @@ if __name__ == "__main__":
                             u.append({"dratio": d_ratios[i], "drtime": d_rtimes[j], "fratio": f_ratios[k], "frtime": f_rtimes[l],
                                 "vd": v_d[i,j,k,l], "vf": v_f[i,j,k,l]})
             df = pd.DataFrame.from_records(u)
-            print(v_d)
-            #import statsmodels.api as sm
-            #from statsmodels.formula.api import ols
-            #lm = ols("", data=vd).fit()
+            import statsmodels.api as sm
+            from statsmodels.formula.api import ols
+            models = {}
+            models["m1"] = ols("vd~dratio+fratio+drtime+frtime", data=df).fit()
+            table = sm.stats.anova_lm(models["m1"], typ=2)
+            print(table)
         else:
             d_ratios = np.linspace(2., 400., _I_)
             d_rtimes = np.linspace(0.5, 3.5, _J_)
             f_ratios = np.linspace(1., 1.2, _K_)
             f_rtimes = np.linspace(0.5, 3., _L_)
+            os.system("rm data/sim/optim.nc")
             rootgrp = Dataset("data/sim/optim.nc", "w", format="NETCDF4")
             rootgrp.description = """Optimization based on 4 parameters."""
             rootgrp.history = "Created " + time.ctime(time.time())
@@ -125,6 +128,7 @@ if __name__ == "__main__":
             x[:] = vf
             print("")
             rootgrp.close()
+            os.system("cp data/sim/optim.nc config/")
         if os.path.exists("sd/__pycache__/"):
             os.system("rm -rf sd/__pycache__/")
             os.system("rm -rf py*.log")
