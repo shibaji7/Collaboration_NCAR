@@ -16,6 +16,9 @@ matplotlib.use("Agg")
 import os
 import datetime as dt
 import pandas as pd
+from netCDF4 import Dataset, num2date
+import numpy as np
+import calendar
 from pysolar.solar import get_altitude
 
 def create_folder_structures(dn, stn):
@@ -58,7 +61,6 @@ def get_geolocate_range_cells(rad, beam=None):
     if beam is not None: lat, lon = lat[beam, :], lon[beam, :]
     return lat, lon
 
-
 def calculate_sza(d, lat, lon, alt=300):
     """
     This method is used to estimate the solar zenith angle for a specific date and
@@ -68,3 +70,59 @@ def calculate_sza(d, lat, lon, alt=300):
     d = d.replace(tzinfo=dt.timezone.utc)
     sza = 90. - get_altitude(lat, lon, d)
     return sza
+
+def download_goes_data(dn, sat=15, v=True):
+    """ Download GOES data """
+    def _get_month_bounds_(start_time):
+        """ This method is used to get the first and last date of the month """
+        month_start = start_time.replace(day = 1).strftime("%Y%m%d")
+        _, month_end = calendar.monthrange(start_time.year, start_time.month)
+        month_end = (start_time.replace(day = 1) + dt.timedelta(days=month_end-1)).strftime("%Y%m%d")
+        return month_start, month_end
+    fname = "data/sim/{dnx}/goes.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
+    if not os.path.exists(fname+".gz"):
+        month_start, month_end = _get_month_bounds_(dn)
+        url = "https://satdat.ngdc.noaa.gov/sem/goes/data/avg/{year}/{month}/goes{sat}/netcdf/"\
+                "g{sat}_xrs_1m_{mstart}_{mend}.nc".format(year=dn.year, month="%02d"%dn.month, sat=sat,
+                        mstart=month_start, mend=month_end)
+        if v: print("\n Download file -from- " + url)
+        tag_vars = ["A_AVG","B_AVG"]
+        fn = fname.replace(".csv",".nc")
+        os.system("wget -O {fn} {url}".format(fn=fn, url=url))
+        if os.path.exists(fn):
+            nc = Dataset(fn)
+            tt = nc.variables["time_tag"]
+            jd = np.array(num2date(tt[:],tt.units))
+            data = {}
+            for var in tag_vars:  data[var] = nc.variables[var][:]
+            data["date"] = jd
+            data_dict = pd.DataFrame(data)
+            data_dict = data_dict[(data_dict.date >= dn-dt.timedelta(minutes=30)) 
+                    & (data_dict.date < dn+dt.timedelta(minutes=2))]
+            data_dict.to_csv(fname, index=False, header=True)
+            os.system("gzip {fname}".format(fname=fname))
+            if v: print("\n File saved  -to- " + fname)
+            os.remove(fn)
+        else: print("\n Unable to download file.")
+    return
+
+def read_goes(dn):
+    """ This method is used to fetch GOES x-ray data for a given day """
+    download_goes_data(dn)
+    gzfname = "data/sim/{dnx}/goes.csv.gz".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
+    fname = "data/sim/{dnx}/goes.csv".format(dnx=dn.strftime("%Y.%m.%d.%H.%M"))
+    os.system("gzip -d " + gzfname)
+    _o = pd.read_csv(fname,parse_dates=["date"])
+    os.system("gzip {fname}".format(fname=fname))
+    return _o
+
+def get_rtime(dn, sig="B_AVG", th=3.e-6):
+    """ This method is used to calculate rise time in minutes """
+    rtime = np.nan
+    _o = read_goes(dn)
+    sig = np.array(_o[sig])
+    ix = np.min([i for i,v in enumerate(sig) if v>th and v<np.max(sig)])
+    dx = _o.date.tolist()[ix]
+    print("\n start time - ", dx)
+    rtime = ((dn-dx).total_seconds())/60. 
+    return rtime

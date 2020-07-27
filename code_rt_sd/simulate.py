@@ -51,6 +51,7 @@ if __name__ == "__main__":
         parser.add_argument("-ee", "--eelev", type=float, default=35., help="End elevation angle deg")
         parser.add_argument("-ei", "--ielev", type=float, default=1., help="Inc of elevation angle deg (default 20*)")
         parser.add_argument("-nhops", "--nhops", type=float, default=1, help="Number of hops (default 1)")
+        parser.add_argument("-th", "--threshold", type=float, default=1.e-5, help="Threshold for risetime, (1.e-5)")
         args = parser.parse_args()
         if args.verbose:
             print("\n Parameter list for simulation ")

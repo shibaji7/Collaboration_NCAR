@@ -87,7 +87,7 @@ class TGCM(object):
         if self.tsim_start is None: self.tsim_start = 0
         if self.tsim_end is None: self.tsim_end = int((self.end-self.start).total_seconds()/60.)
         utils.create_folder_structures(self.event, self.rad)
-        self.rtime = 2.
+        self.rtime = utils.get_rtime(self.event, th = self.threshold)
         self.con = False
         if hasattr(self, "clear") and self.clear: os.system("rm data/sim/{dn}/{rad}/*".format(
             dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad))
@@ -244,13 +244,13 @@ class TGCM(object):
             vd += (0.5 * f * 3e8 / (self.frequency * 1e6))
             vf += _estimate_dop_delh_(d,b)
             itr += 1
-        vd = vd / itr
-        vf = vf / itr
+        self.vd = vd / itr
+        self.vf = vf / itr
         if self.verbose:
             print("\tDoppler velocity at {ev} -> Vd={vd} m/s, Vf={vf} m/s, Vt={vt} m/s".format(ev=
                 (self.start+dt.timedelta(minutes=i)).strftime("%Y-%m-%d %H:%M"), 
-                    vd=np.round(vd,1), vf=np.round(vf,1), vt=np.round(vf+vd,1)))
-        return vd, vf, vd+vf
+                    vd=np.round(self.vd,1), vf=np.round(self.vf,1), vt=np.round(self.vf+self.vd,1)))
+        return
 
     def _compute_(self, i, case="d"):
         """ Compute RT using Pharlap """

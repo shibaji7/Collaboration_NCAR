@@ -87,7 +87,7 @@ class WACCM(object):
         if self.tsim_start is None: self.tsim_start = 0
         if self.tsim_end is None: self.tsim_end = int((self.end-self.start).total_seconds()/60.)
         utils.create_folder_structures(self.event, self.rad)
-        self.rtime = 2.
+        self.rtime = utils.get_rtime(self.event, th = self.threshold)
         self.con = False
         if hasattr(self, "clear") and self.clear: os.system("rm data/sim/{dn}/{rad}/*".format(
             dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad))
