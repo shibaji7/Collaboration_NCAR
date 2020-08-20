@@ -33,12 +33,23 @@ from scipy.io import loadmat
 from SALib.sample import saltelli
 from SALib.analyze import sobol
 
+import itertools
+from math import pi
+from matplotlib.legend_handler import HandlerPatch
+class HandlerCircle(HandlerPatch):
+    def create_artists(self, legend, orig_handle,
+            xdescent, ydescent, width, height, fontsize, trans):
+        center = 0.5 * width - 0.5 * xdescent, 0.5 * height - 0.5 * ydescent
+        p = plt.Circle(xy=center, radius=orig_handle.radius)
+        self.update_prop(p, orig_handle, legend)
+        p.set_transform(trans)
+        return [p]
 
 import utils
 
-def textHighlighted(xy, text, ax=None, color='k', fontsize=None, xytext=(0,0),
-        zorder=None, text_alignment=(0,0), xycoords='data', 
-        textcoords='offset points', **kwargs):
+def textHighlighted(xy, text, ax=None, color="k", fontsize=None, xytext=(0,0),
+        zorder=None, text_alignment=(0,0), xycoords="data", 
+        textcoords="offset points", **kwargs):
     """
     Plot highlighted annotation (with a white lining)
     
@@ -49,13 +60,13 @@ def textHighlighted(xy, text, ax=None, color='k', fontsize=None, xytext=(0,0),
     text : str text to show
     ax : Optional[ ]
     color : Optional[char]
-    text color; deafult is 'k'
+    text color; deafult is "k"
     fontsize : Optional [ ] text font size; default is None
     xytext : Optional[ ] text position; default is (0, 0)
     zorder : text zorder; default is None
     text_alignment : Optional[ ]
-    xycoords : Optional[ ] xy coordinate[1]; default is 'data'
-    textcoords : Optional[ ] text coordinate[2]; default is 'offset points'
+    xycoords : Optional[ ] xy coordinate[1]; default is "data"
+    textcoords : Optional[ ] text coordinate[2]; default is "offset points"
     **kwargs :
     
     Notes
@@ -698,6 +709,93 @@ class SensitivityAnalysis(object):
         import scipy
         return
 
+    def _normalize_(self, x, xmin, xmax):
+        return (x-xmin)/(xmax-xmin)
+
+    def _plot_circles_(self, ax, locs, names, max_s, stats, smax, smin, fc, ec, lw, zorder):
+        s = np.asarray([stats[name] for name in names])
+        s = 0.01 + max_s * np.sqrt(self._normalize_(s, smin, smax))
+        
+        fill = True
+        for loc, name, si in zip(locs, names, s):
+            if fc=="w": fill=False
+            else: ec="none"           
+            x = np.cos(loc)
+            y = np.sin(loc)
+            
+            circle = plt.Circle((x,y), radius=si, ec=ec, fc=fc, transform=ax.transData._b,
+                    zorder=zorder, lw=lw, fill=True)
+            ax.add_artist(circle)
+        return
+
+    def _filter_(self, sobol_indices, names, locs, criterion, threshold):
+        if criterion in ["ST", "S1", "S2"]:
+            data = sobol_indices[criterion]
+            data = np.abs(data)
+            data = data.flatten() # flatten in case of S2
+            # TODO:: remove nans
+            filtered = ([(name, locs[i]) for i, name in enumerate(names) if
+                data[i]>threshold])
+            filtered_names, filtered_locs = zip(*filtered)
+        elif criterion in ["ST_conf", "S1_conf", "S2_conf"]: raise NotImplementedError
+        else: raise ValueError("unknown value for criterion")
+        return filtered_names, filtered_locs
+
+    def _legend_(self, ax):
+        some_identifiers = [plt.Circle((0,0), radius=5, color="k", fill=False, lw=1),
+                plt.Circle((0,0), radius=5, color="k", fill=True),
+                plt.Line2D([0,0.5], [0,0.5], lw=8, color="darkgray")]
+        ax.legend(some_identifiers, ["ST", "S1", "S2"],
+                loc=(1,0.75), borderaxespad=0.1, mode="expand",
+                handler_map={plt.Circle: HandlerCircle()})
+        return
+
+    def _plot_sobol_indices_(self, sobol_indices, criterion="ST", threshold=0.01):
+        max_linewidth_s2 = 15#25*1.8
+        max_s_radius = 0.3
+        sobol_stats = {key:sobol_indices[key] for key in ["ST", "S1"]}
+        sobol_stats = pd.DataFrame(sobol_stats, index=self.problem["names"])
+        smax = sobol_stats.max().max()
+        smin = sobol_stats.min().min()
+        s2 = pd.DataFrame(sobol_indices["S2"], index=problem["names"],
+                columns=problem["names"])
+        s2[s2<0.0]=0. #Set negative values to 0 (artifact from small sample sizes)
+        s2max = s2.max().max()
+        s2min = s2.min().min()
+        
+        names = problem["names"]
+        n = len(names)
+        ticklocs = np.linspace(0, 2*pi, n+1)
+        locs = ticklocs[0:-1]
+        
+        filtered_names, filtered_locs = self._filter_(sobol_indices, names, locs,
+                criterion, threshold)
+        
+        # setup figure
+        fig = plt.figure()
+        ax = fig.add_subplot(111, polar=True)
+        ax.grid(False)
+        ax.spines["polar"].set_visible(False)
+        ax.set_xticks(ticklocs)
+        ax.set_xticklabels(names)
+        ax.set_yticklabels([])
+        ax.set_ylim(top=1.4)
+        self._legend_(ax)
+        # plot ST
+        self._plot_circles_(ax, filtered_locs, filtered_names, max_s_radius,
+                sobol_stats["ST"], smax, smin, "w", "k", 1, 9)
+        # plot S1
+        self._plot_circles_(ax, filtered_locs, filtered_names, max_s_radius,
+                sobol_stats["S1"], smax, smin, "k", "k", 1, 10)
+        # plot S2
+        for name1, name2 in itertools.combinations(zip(filtered_names, filtered_locs), 2):
+            name1, loc1 = name1
+            name2, loc2 = name2
+            weight = s2.loc[name1, name2]
+            lw = 0.5+max_linewidth_s2*self._normalize_(weight, s2min, s2max)
+            ax.plot([loc1, loc2], [1,1], c="darkgray", lw=lw, zorder=1)
+        return fig
+
     def analyze(self):
         """ Analyze and plots sensitivity test results """
         self._hist_()
@@ -708,7 +806,6 @@ class SensitivityAnalysis(object):
             Si = sobol.analyze(self.problem, self.ds.variables[pm][:].ravel(), calc_second_order=True, print_to_console=False)
             Si_filter = {k:Si[k] for k in ["ST","ST_conf","S1","S1_conf"]}
             Si_df = pd.DataFrame(Si_filter, index=self.problem["names"])
-            print(Si_df)
             fig, ax = plt.subplots(1)
             indices = Si_df[["S1","ST"]]
             err = Si_df[["S1_conf","ST_conf"]]
