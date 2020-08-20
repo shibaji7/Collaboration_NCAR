@@ -87,10 +87,19 @@ class TGCM(object):
         if self.tsim_start is None: self.tsim_start = 0
         if self.tsim_end is None: self.tsim_end = int((self.end-self.start).total_seconds()/60.)
         utils.create_folder_structures(self.event, self.rad)
-        self.rtime = utils.get_rtime(self.event, th = self.threshold)
+        if not hasattr(self, "rtime"): self.rtime = utils.get_rtime(self.event, th = self.threshold)
         self.con = False
-        if hasattr(self, "clear") and self.clear: os.system("rm data/sim/{dn}/{rad}/*".format(
-            dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad))
+        if hasattr(self, "clear") and self.clear: self._clear_()
+        self.recs = []
+        return
+
+    def _clear_(self):
+        """ Clear and restore data """
+        os.system("rm data/sim/{dn}/{rad}/*".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad))
+        arc =  "data/sim/{dn}/archive/{rad}/tgcm/".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad)
+        if os.path.exists(arc):
+            os.system("cp -r {arc}* data/sim/{dn}/{rad}/".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"),
+                rad=self.rad, arc=arc))
         return
 
     def _conn_(self):
@@ -119,12 +128,11 @@ class TGCM(object):
             if self.verbose: print("\n Create SSH.SCP connection, post process, and fetch data.")
             self.ssh.exec_command("mkdir tmp/")
             self.scp.put("config/proc.py", "tmp/")
-            if self.verbose: print(" Run -", "python tmp/proc.py -ev {ev} -dn {dn} -rn {rn}".format(
-                ev=self.event.strftime("%Y.%m.%d.%H.%M"),
-                dn=dn.strftime("%Y.%m.%d.%H.%M"), rn=self.sim_id))
+            if self.verbose: print(" Run -", "python tmp/proc.py -ev {ev} -dn {dn}".format(
+                ev=self.event.strftime("%Y.%m.%d.%H.%M"), dn=dn.strftime("%Y.%m.%d.%H.%M")))
             stdin, stdout, stderr = self.ssh.exec_command("source ncar_tgcm_waccm_proc/ncar/bin/activate"\
-                    "\n python tmp/proc.py -ev {ev} -dn {dn} -rn {rn}".format(ev=self.event.strftime("%Y.%m.%d.%H.%M"),
-                        dn=dn.strftime("%Y.%m.%d.%H.%M"), rn=self.sim_id), get_pty=True)
+                    "\n python tmp/proc.py -ev {ev} -dn {dn}".format(ev=self.event.strftime("%Y.%m.%d.%H.%M"),
+                        dn=dn.strftime("%Y.%m.%d.%H.%M")), get_pty=True)
             if self.verbose:
                 for line in iter(stdout.readline, ""):
                     print(line, end="")
@@ -204,21 +212,26 @@ class TGCM(object):
         funcf = interp2d(grange,height,np.log10(nef))
         funcd = interp2d(grange,height,np.log10(ned))
         for fi in fnf:
-            dop, dth = [], []
+            dop, dth, sth = [], [], []
             elvi, rayi = float(fi.split(".")[-3][4:-1]), pd.read_csv(fi)
             gi, hi = np.array(rayi.grange), np.array(rayi.height)
             dth.append(0.)
+            sth.append(0.)
             for k in range(len(gi[:-1])):
                 dth.append(np.abs(hi[k]-hi[k+1]))
-            dth = np.array(dth)*1000.
+                sth.append(np.sqrt((hi[k]-hi[k+1])**2+(gi[k]-gi[k+1])**2))
+            dth, sth = np.array(dth)*1000., np.array(sth)*1000
             for k, g, h in zip(range(len(gi)), gi, hi):
                 if h > 50.:
                     dne = (10**funcf(g,h) - 10**funcd(g, h))[0]
-                    df = (kconst / (cconst * self.frequency*1e6)) * (dne / delt) * (dth[k] / np.cos(np.deg2rad(90.-elvi)))
+                    #df = (kconst / (cconst * self.frequency*1e6)) * (dne / delt) * (dth[k] / np.cos(np.deg2rad(90.-elvi)))
+                    df = (kconst / (cconst * self.frequency*1e6)) * (dne / delt) * (dth[k])
                     if np.isnan(df):  df = 0.
                     dop.append(df)
                 else: dop.append(0.)
             rayi["dop"] = dop
+            rayi["sth"] = sth
+            rayi["dth"] = dth
             rayi.to_csv(fi, header=True, index=False)
         self._compute_velocity_(i)
         return
@@ -226,30 +239,37 @@ class TGCM(object):
     def _compute_velocity_(self, i):
         """ Compute Velocity """
         def _estimate_dop_delh_(x, y, phi=0):
-            dh = np.abs(np.max(x.height) - np.max(y.height)) * 1000.
-            xf = (2*self.frequency*1e6/3e8) * (dh/(self.rtime*60.)) * np.cos(np.deg2rad(phi))
+            dh = (np.max(x.height) - np.max(y.height)) * 1000.
+            xf = (-2.*self.frequency*1e6/3e8) * (dh/(self.rtime*60.)) * np.cos(np.deg2rad(phi))
             xd = 0.5 * xf * 3e8 / (self.frequency * 1e6)
             return xd
+        elvrang = np.arange(self.selev_d, self.eelev_d+1, self.ielev_d)
         dic = "data/sim/{dn}/{rad}/".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad)
         fnd = glob.glob(dic + "ti({ti}).bm({bm}).elv(*).d.csv".format(ti=i, bm=self.bmnum))
         fnf = glob.glob(dic + "ti({ti}).bm({bm}).elv(*).f.csv".format(ti=i, bm=self.bmnum))
         fnd.sort()
         fnf.sort()
-        vd, vf, itr = 0., 0., 0
+        vd, vf, itr = np.zeros(len(elvrang)), np.zeros(len(elvrang)), 0
         for fi, fj in zip(fnf, fnd):
             elvi = float(fi.split(".")[-3][4:-1])
-            d = pd.read_csv(fi)
-            b = pd.read_csv(fj)
-            f = np.abs(trapz(np.array(d.dop), np.array(d.grange)/np.cos(np.deg2rad(90-elvi))))
-            vd += (0.5 * f * 3e8 / (self.frequency * 1e6))
-            vf += _estimate_dop_delh_(d,b)
-            itr += 1
-        self.vd = vd / itr
-        self.vf = vf / itr
+            if elvi in elvrang:
+                d = pd.read_csv(fi)
+                b = pd.read_csv(fj)
+                f = trapz(np.array(d.dop), np.array(d.grange))
+                #f = (trapz(np.array(d.dop), np.array(d.grange)/np.cos(np.deg2rad(90-elvi))))
+                vd[itr] = (0.5 * f * 3e8 / (self.frequency * 1e6))
+                vf[itr] = _estimate_dop_delh_(d,b)
+                itr += 1
+        self.vd = np.mean(vd.max()+vd.min())
+        self.vf = np.mean(vf.max()+vf.min())
+        self.vt = np.mean((vf+vd).max()+(vf+vd).min())
+        self.recs.append({"dn":self.start+dt.timedelta(minutes=i), "vn":self.vd, "vh": self.vf, "vn_max":np.max(vd),
+            "vn_min":np.min(vd), "vh_max":np.max(vf), "vh_min":np.min(vf), "vt":self.vt, "vt_max":np.max(vf+vd), "vt_min":np.min(vf+vd)})
         if self.verbose:
-            print("\tDoppler velocity at {ev} -> Vd={vd} m/s, Vf={vf} m/s, Vt={vt} m/s".format(ev=
-                (self.start+dt.timedelta(minutes=i)).strftime("%Y-%m-%d %H:%M"), 
-                    vd=np.round(self.vd,1), vf=np.round(self.vf,1), vt=np.round(self.vf+self.vd,1)))
+            print("\tDoppler velocity at {ev} -> Vd={vd}*pm*{vds} m/s, Vf={vf}*pm*{vfs} m/s, Vt={vt}*pm*{vts} m/s".format(ev=
+                (self.start+dt.timedelta(minutes=i)).strftime("%Y-%m-%d %H:%M"),
+                vd=np.round(self.vd,1), vf=np.round(self.vf,1), vt=np.round(self.vf+self.vd,1),
+                vds=np.round(np.std(vd),1), vfs=np.round(np.std(vf),1), vts=np.round(np.std(vf+vd),1)))
         return
 
     def _compute_(self, i, case="d"):
@@ -283,7 +303,8 @@ class TGCM(object):
 
     def _plot_radstn_(self, i):
         """ Plot radar station """
-        fname = "data/sim/{dn}/{rad}/tgcm({i}).png".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad, i=i)
+        fname = "data/sim/{dn}/{rad}/waccmx_ti({i}).bm({bm}).png".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"),
+                rad=self.rad, i=i, bm=self.bmnum)
         ij = _get_ij_(self._nc_.variables["lat"][:], self._nc_.variables["lon"][:], self.rlat, self.rlon)
         p = self._nc_.variables["NEd"][0,:,ij[0],ij[1]]
         f = self._nc_.variables["NEf"][0,:,ij[0],ij[1]]
@@ -312,6 +333,9 @@ class TGCM(object):
         if self.verbose: print("\n Interpolation completed.")
         if self.verbose: print("\n Processing Doppler.")
         self._close_()
+        x = pd.DataFrame.from_records(self.recs)
+        x.to_csv("data/sim/{dn}/{rad}/velocity.ts.csv".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad), index=False)
+        plotlib.plot_velocity_ts(self.event, self.rad, self.bmnum)
         if hasattr(self, "archive") and self.archive: self._arch_()
         return
     

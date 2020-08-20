@@ -25,7 +25,7 @@ import time
 from superdarn import SuperDARN
 
 
-_I_, _J_, _K_, _L_ = 7, 5, 5, 5
+_I_, _J_, _K_, _L_ = 10, 10, 10, 10
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser()
@@ -82,9 +82,14 @@ if __name__ == "__main__":
             import statsmodels.api as sm
             from statsmodels.formula.api import ols
             models = {}
-            models["m1"] = ols("vd~dratio+fratio+drtime+frtime", data=df).fit()
-            table = sm.stats.anova_lm(models["m1"], typ=2)
-            print(table)
+            models["m1"] = ols("vf~dratio+fratio+drtime+frtime", data=df).fit()
+            models["m2"] = ols("vf~dratio*fratio+drtime+frtime", data=df).fit()
+            models["m3"] = ols("vf~dratio+fratio+drtime*frtime", data=df).fit()
+            models["m4"] = ols("vf~dratio*fratio*drtime*frtime", data=df).fit()
+            tables = {}
+            for m in models.keys():
+                tables[m] = sm.stats.anova_lm(models[m], typ=2)
+                print(tables[m])
         else:
             d_ratios = np.linspace(2., 400., _I_)
             d_rtimes = np.linspace(0.5, 3.5, _J_)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""simulate.py: simulate python program for Doppler shift"""
+"""model_sim.py: simulate python program for Doppler shift"""
 
 __author__ = "Chakraborty, S."
 __copyright__ = "Copyright 2020, SuperDARN@VT"
@@ -18,8 +18,7 @@ import datetime as dt
 import argparse
 from dateutil import parser as dparser
 
-from tgcm import TGCM
-from waccmx import WACCM
+from models import WACCM
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser()
@@ -27,7 +26,6 @@ if __name__ == "__main__":
         parser.add_argument("-r", "--rad", default="bks", help="Radar code (default bks)")
         parser.add_argument("-ev", "--event", default=dt.datetime(2015,3,11,16,22), help="Start date (default 2015-3-11T16:22)",
                 type=dparser.isoparse)
-        parser.add_argument("-b", "--bmnum", type=int, default=0, help="Beam num starting from 0 in center and +, - on right-left")
         parser.add_argument("-ts", "--tsim_start", type=int, default=None, help="Minutes to simulate start (0-...) (default None)")
         parser.add_argument("-te", "--tsim_end", type=int, default=None, help="Minutes to simulate end (1-...) (default None)")
         parser.add_argument("-s", "--start", default=dt.datetime(2015,3,11,16), help="Start date (default 2015-3-11T16:05)",
@@ -60,18 +58,8 @@ if __name__ == "__main__":
             print("\n Parameter list for simulation ")
             for k in vars(args).keys():
                 print("     " , k , "->" , str(vars(args)[k]))
-        if args.model == "waccmx":
-            if args.bmnum >= 0: WACCM(args)._exe_()
-            else:
-                for b in range(24):
-                    args.bmnum = b
-                    WACCM(args)._exe_()
-        if args.model == "tgcm": 
-            if args.bmnum >= 0: TGCM(args)._exe_()
-            else:
-                for b in range(24):
-                    args.bmnum = b
-                    WACCM(args)._exe_()
+        if args.model == "waccmx": WACCM(args)._exe_()
+        if args.model == "tgcm": print("TODO")
         print("")
         if os.path.exists("sd/__pycache__/"):
             os.system("rm -rf sd/__pycache__/")

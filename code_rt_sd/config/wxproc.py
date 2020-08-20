@@ -28,14 +28,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
     event, date = dt.datetime.strptime(args.event, "%Y.%m.%d.%H.%M"), dt.datetime.strptime(args.date, "%Y.%m.%d.%H.%M")
     ldat = Dataset("tmp/waccmx.nc", "w", format="NETCDF4")
+    dates = [date, date-dt.timedelta(minutes=1)]
+    typs = ["flr", "flr"]
     cases = ["flr","dly"]
-    fname = "/glade/scratch/shibaji/archive/{ev}.{case}-FXHIST-f19_f19/atm/hist/{ev}.{case}-FXHIST-f19_f19.cam.h1.{dn}-{tm}.nc"
+    fname = "/glade/scratch/shibaji/archive/R.{ev}.{case}-FXHIST-f19_f19/atm/hist/R.{ev}.{case}-FXHIST-f19_f19.cam.h1.{dn}-{tm}.nc"
     t = []
     zg = {"dly": np.zeros((1, 126, 96, 144)), "flr": np.zeros((1, 126, 96, 144))}
     ne = {"dly": np.zeros((1, 126, 96, 144)), "flr": np.zeros((1, 126, 96, 144))}
-    for case in cases:
+    for case, date, ty in zip(cases, dates, typs):
         tm = int((date - date.replace(hour=0, minute=0, second=0)).total_seconds()/(24*60))*(24*60)
-        f = fname.format(ev=event.strftime("%Y.%m.%d.%H.%M"), case=case, dn=event.strftime("%Y-%m-%d"), tm="%05d"%tm)    
+        f = fname.format(ev=event.strftime("%Y.%m.%d.%H.%M"), case=ty, dn=event.strftime("%Y-%m-%d"), tm="%05d"%tm)    
         rdat = Dataset(f)
         print(" Fname - ",f)
         lat, lon, lev = rdat.variables["lat"], rdat.variables["lon"], rdat.variables["lev"]

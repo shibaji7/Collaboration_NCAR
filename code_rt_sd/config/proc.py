@@ -25,28 +25,26 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-ev", "--event")
     parser.add_argument("-dn", "--date")
-    parser.add_argument("-rn", "--run")
     args = parser.parse_args()
     event, date = dt.datetime.strptime(args.event, "%Y.%m.%d.%H.%M"), dt.datetime.strptime(args.date, "%Y.%m.%d.%H.%M")
     ldat = Dataset("tmp/tgcm.nc", "w", format="NETCDF4")
-    cases = ["1","2"]
-    fname = "/glade/work/shibaji/timegcm/cases/{dn}-{r}.{c}/timegcm_trunk/timegcm-ch/timegcm.s_{doy}.nc"
+    cases = [date, date-dt.timedelta(minutes=1)]
+    fname = "/glade/work/shibaji/timegcm/cases/{dn}-flr/timegcm_trunk/timegcm-ch/timegcm.s_{doy}.nc"
     t = []
     zg = {"dly": np.zeros((1, 49, 36, 72)), "flr": np.zeros((1, 49, 36, 72))}
     ne = {"dly": np.zeros((1, 49, 36, 72)), "flr": np.zeros((1, 49, 36, 72))}
-    cds = {"1":"dly","2":"flr"}
-    for case in cases:
-        tm = int((date - date.replace(hour=0, minute=0, second=0)).total_seconds()/(24*60))*(24*60)
-        f = fname.format(dn=event.strftime("%Y.%m.%d.%H.%M"), c=case, r=args.run, doy=date.strftime("%j"))    
-        rdat = Dataset(f)
-        print(" Fname - ",f)
-        lat, lon, lev = rdat.variables["lat"], rdat.variables["lon"], rdat.variables["lev"]
-        tx = num2date(rdat.variables["time"][:], units=rdat.variables["time"].units)
-        tx = np.array([x._to_real_datetime() for x in tx]).astype("datetime64[ns]")
-        tx = [dt.datetime.utcfromtimestamp(x.astype(int) * 1e-9) - dt.timedelta(days=1) for x in tx]
-        tm = tx.index(date)
-        zg[cds[case]][0,:,:,:] = rdat.variables["ZG"][tm,:,:,:]
-        ne[cds[case]][0,:,:,:] = rdat.variables["NE"][tm,:,:,:]
+    cds = {1:"dly",0:"flr"}
+    f = fname.format(dn=event.strftime("%Y.%m.%d.%H.%M"), doy=date.strftime("%j"))
+    rdat = Dataset(f)
+    print(" Fname - ",f)
+    lat, lon, lev = rdat.variables["lat"], rdat.variables["lon"], rdat.variables["lev"]
+    tx = num2date(rdat.variables["time"][:], units=rdat.variables["time"].units)
+    tx = np.array([x._to_real_datetime() for x in tx]).astype("datetime64[ns]")
+    tx = [dt.datetime.utcfromtimestamp(x.astype(int) * 1e-9) - dt.timedelta(days=1) for x in tx]
+    for i, case in enumerate(cases):
+        tm = tx.index(case)
+        zg[cds[i]][0,:,:,:] = rdat.variables["ZG"][tm,:,:,:]
+        ne[cds[i]][0,:,:,:] = rdat.variables["NE"][tm,:,:,:]
     ldat.createDimension("lat", len(lat[:]))
     ldat.createDimension("lon", len(lon[:]))
     ldat.createDimension("lev", len(lev[:]))

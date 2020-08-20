@@ -126,3 +126,11 @@ def get_rtime(dn, sig="B_AVG", th=3.e-6):
     print("\n start time - ", dx)
     rtime = ((dn-dx).total_seconds())/60. 
     return rtime
+
+def get_sd_data(fname, bmnum):
+    """ Get SD data for a bmnum """
+    os.system("gzip -d " + fname)
+    x = pd.read_csv(fname.replace(".gz", ""), parse_dates=["time"])
+    x = x[x.bmnum==bmnum]
+    os.system("gzip " + fname.replace(".gz", ""))
+    return x
