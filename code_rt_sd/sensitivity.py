@@ -44,11 +44,12 @@ if __name__ == "__main__":
         parser.add_argument("-sh", "--sheight", type=float, default=50., help="Start height in km (default 50 km)")
         parser.add_argument("-nmh", "--eheight", type=float, default=350., help="End height in km (default 350 km)")
         parser.add_argument("-hinc", "--hinc", type=float, default=1., help="Step in height in km (default 1 km)")
-        parser.add_argument("-es", "--selev", type=float, default=16., help="Start elevation angle deg")
+        parser.add_argument("-es", "--selev", type=float, default=30., help="Start elevation angle deg")
         parser.add_argument("-ee", "--eelev", type=float, default=35., help="End elevation angle deg")
         parser.add_argument("-ei", "--ielev", type=float, default=1., help="Inc of elevation angle deg (default 20*)")
         parser.add_argument("-nhops", "--nhops", type=float, default=1, help="Number of hops (default 1)")
         parser.add_argument("-pl", "--plot", action="store_false", help="Analyze sensitivity (default True)")
+        parser.add_argument("-reg", "--regs", action="store_true", help="Analyze sensitivity (default False)")
         args = parser.parse_args()
         if args.verbose:
             print("\n Parameter list for simulation ")
@@ -58,15 +59,15 @@ if __name__ == "__main__":
         problem = {
                 "num_vars": n,
                 "names": ["D-Ratio", "E-Ratio", "F-Ratio"],
-                "bounds": [[1, 200],
-                    [1., 1.2],
-                    [1, 1.1]]
+                "bounds": [[0.99, 40.],
+                    [0.99, 1.5],
+                    [0.99, 1.1]]
                 }
         if args.plot:
             dat = Dataset("config/sensitivity.nc")
             y = dat.variables["vd_mean"][:]
             sas = SAS(problem, dat)
-            sas.analyze()
+            sas.analyze(args.regs)
         else:
             samples = saltelli.sample(problem, N, calc_second_order=True)
             N = N * (2*n+2)
@@ -84,7 +85,7 @@ if __name__ == "__main__":
             vd[:], vf[:] = np.nan, np.nan
             recs = []
             for i in range(N):
-                args.d_ratio, args.e_ratio, args.f_ratio = samples[i][0], samples[i][1], samples[i][2]
+                args.d_ratio, args.e_ratio, args.f_ratio = samples[i,0], samples[i,1], samples[i,2]
                 rec = Senstitivity(args)._exe_()
                 recs.append(rec)
             recs = np.array(recs)
@@ -98,7 +99,7 @@ if __name__ == "__main__":
                 x[:] = recs[:,1+i*3]
                 x = rootgrp.createVariable("vt_"+a,"f8",("samples"))
                 x.description = "Velocity estimated from total density change. (in m/s)"
-                x[:] = recs[:,1+i*3]
+                x[:] = recs[:,2+i*3]
             print("")
             rootgrp.close()
             os.system("cp data/sim/sensitivity.nc config/")

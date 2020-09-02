@@ -312,7 +312,7 @@ class Base(object):
 
     def _fetch_sd_(self):
         """ Fetch SuperDARN data and save to local """
-        fname = self.files["base"] + "sd_{rad}_data.csv".format(rad=self.rad)
+        fname = "data/op/{dn}/{model}/sd_{rad}_data.csv".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad, model=self.model)
         if not os.path.exists(fname + ".gz"):
             fd = FetchData(self.rad, [self.start, self.end])
             beams, _ = fd.fetch_data(v_params=["elv", "v", "w_l", "gflg", "p_l", "slist", "v_e"])
@@ -323,6 +323,22 @@ class Base(object):
             os.system("gzip -d " + fname+".gz")
             self.rec = pd.read_csv(fname, parse_dates=["time"])
             os.system("gzip " + fname)
+        
+        fd = FetchData(self.rad, [self.start, self.end + dt.timedelta(minutes=2)])
+        _, scans = fd.fetch_data(v_params=["elv", "v", "w_l", "gflg", "p_l", "slist", "v_e"], by="scan")
+        raw_dic = {"vel":[], "beam":[], "gate":[]}
+        for sc in scans:
+            vel, beam, gate = [], [], [] 
+            for b in sc.beams:
+                l = len(b.slist)
+                beam.append([b.bmnum]*l)
+                vel.append(b.v)
+                gate.append(b.slist)
+            raw_dic["vel"].append(np.array(vel))
+            raw_dic["beam"].append(np.array(beam))
+            raw_dic["gate"].append(np.array(gate))
+        setattr(self, "frequency", np.median(self.rec.tfreq)/1e3)
+        self.raw_dic, self.skip = raw_dic, int(self.tsim_end/len(scans) + 1)
         return
 
     def _run_bmnum_(self):
@@ -366,13 +382,13 @@ class Base(object):
             data_dic["vel"].append(np.array(vel))
             data_dic["beam"].append(np.array(beam))
             data_dic["gate"].append(np.array(gate))
-        fanplot.plot_fov(data_dic, range(self.tsim_start, self.tsim_end), "", base_filepath=path)
+        fanplot.plot_fov(data_dic, range(self.tsim_start, self.tsim_end), "Radar- %s, Model- %s"%(self.rad, self.model),
+                self.start, self.raw_dic, skip=self.skip, base_filepath=path)
         return
 
     def _exe_(self):
         """ Execute data simulations """
         self._fetch_sd_()
-        setattr(self, "frequency", np.median(self.rec.tfreq)/1e3)
         if hasattr(self, "plot_summary") and self.plot_summary: self._plot_summary_()
         else:
             for i in range(self.tsim_start, self.tsim_end):

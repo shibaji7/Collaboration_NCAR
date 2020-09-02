@@ -324,6 +324,8 @@ class Senstitivity(object):
         dic = "data/sim/{dn}/{rad}/".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), rad=self.rad)
         self._copy_ne_()
         [self._compute_(case) for case in ["bgc", "flare"]]
+        plotlib.plot_exp_rays(dic, self.event, self.bmnum, "bgc")
+        plotlib.plot_exp_rays(dic, self.event, self.bmnum, "flare")
         self._compute_doppler_()
         rec = self._compute_velocity_()
         return rec

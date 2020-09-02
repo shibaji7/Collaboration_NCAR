@@ -29,6 +29,7 @@ import glob
 import pandas as pd
 from dateutil import tz
 from scipy.io import loadmat
+import copy
 
 from SALib.sample import saltelli
 from SALib.analyze import sobol
@@ -521,7 +522,7 @@ class FanPlot(object):
         for i in range(0, len(rlabels), 5):
             rlabels[i] = i
         plt.rgrids(self.r_ticks, rlabels)
-        plt.thetagrids(self.theta_ticks, range(self.nbeam)[::4])
+        plt.thetagrids(self.theta_ticks, range(self.nbeam+1)[::4])
         return ax
 
     def plot(self, ax, beams, gates, color="blue"):
@@ -599,7 +600,7 @@ class FanPlot(object):
             return True
         return all(x <= y for x, y in zip(vec[:-1], vec[1:]))
 
-    def plot_fov(self, data_dict, scans, name,
+    def plot_fov(self, data_dict, scans, name, start, data, skip=1,
             vel_max=100, vel_step=10,
             save=True, base_filepath=""):
         vel_ranges = list(range(-vel_max, vel_max + 1, vel_step))
@@ -609,11 +610,16 @@ class FanPlot(object):
         vel_colors = vel_cmap(np.linspace(0, 1, len(vel_ranges)))
 
         for i in scans:
-            fig = plt.figure(figsize=(5,5), dpi=120)
-            vel_ax = self.add_axis(fig, 111)
+            fig = plt.figure(figsize=(8,4), dpi=120)
+            vel_ax = self.add_axis(fig, 122)
+            dat_ax = self.add_axis(fig, 121)
             vels = data_dict["vel"][i]
             beams = data_dict["beam"][i]
             gates = data_dict["gate"][i]
+            print("----------", i, skip, int(i/skip))
+            d_vels = data["vel"][int(i/skip)]
+            d_beams = data["beam"][int(i/skip)]
+            d_gates = data["gate"][int(i/skip)]
             for k, (beam, gate, vel) in enumerate(zip(beams, gates, vels)):
                 beam, gate, vel = np.array([beam]), np.array([gate]), np.array([vel])
                 for s in range(len(vel_ranges) - 1):
@@ -621,15 +627,23 @@ class FanPlot(object):
                     beam_s = beam[step_mask]
                     gate_s = gate[step_mask]
                     self.plot(vel_ax, beam_s, gate_s, vel_colors[s])
+            # Add data
+            for k, (vel, beam, gate) in enumerate(zip(d_vels, d_beams, d_gates)):
+                beam, gate, vel = np.array([beam]), np.array([gate]), np.array([vel])
+                for s in range(len(vel_ranges) - 1):
+                    step_mask = (vel >= vel_ranges[s]) & (vel <= vel_ranges[s + 1])
+                    beam_s = beam[step_mask]
+                    gate_s = gate[step_mask]
+                    self.plot(dat_ax, beam_s, gate_s, vel_colors[s])
             self._add_colorbar(fig, vel_ax, vel_ranges, vel_cmap, label="Velocity [m/s]")
-            vel_ax.set_title("Velocity")
-            #scan_time = num2date(data_dict["time"][i][0]).strftime("%H:%M:%S")
-            #plt.suptitle("\n\n%s Scan time %s UT" % (name, scan_time))
+            scan_time = start + dt.timedelta(minutes=i)
+            plt.suptitle("%s \n Scan time %s UT \n Velocity" % (name, scan_time))
             if save:
                 filepath = "%s_%s.png" % (base_filepath, "%02d"%i)
                 self.save(filepath)
             fig.clf()
             plt.close()
+        return
 
 def plot_velocity_ts_beam(dn, rad, bmnum, model, start, end):
     """ Plot velocity TS data """
@@ -707,6 +721,24 @@ class SensitivityAnalysis(object):
     def _regression_(self):
         """ Regression Analysis """
         import scipy
+        import seaborn as sns
+        ylabels = [r"$V_{d\eta}$ [m/s]", r"$V_{dh}$ [m/s]", r"$V_{t}$ [m/s]"]
+        xlabels = [r"$Ratio_{D}$", r"$Ratio_{E}$", r"Ratio_{F}"]
+        yparam = ["vd_mean", "vf_mean", "vt_mean"]
+        xparam = ["d_ratio", "e_ratio", "f_ratio"]
+        print(self.ds.variables["parameters"][:].shape)
+        for i, ylab, yp in zip(range(3), ylabels, yparam):
+            fig, ax = plt.subplots(1, 3, sharey=True)
+            y = self.ds.variables[yp][:].ravel()
+            for j, xlab, xp, a in zip(range(3), xlabels, xparam, ax):
+                x = self.ds.variables["parameters"][:][:,j]
+                sns.regplot(x, y, ax=a, ci=None, color="k",scatter_kws={"alpha":0.2, "s":4, "color":"gray"})
+                pearson = scipy.stats.pearsonr(x, y)
+                a.annotate("r: {:6.3f}".format(pearson[0]), xy=(0.15, 0.85), xycoords="axes fraction",fontsize=13)
+                a.set_xlabel(xlab)
+                if j==0: a.set_ylabel(ylab)
+            fig.savefig("data/sim/reg_{pm}.png".format(pm=yp), bbox_inches="tight")
+            plt.close()
         return
 
     def _normalize_(self, x, xmin, xmax):
@@ -757,13 +789,13 @@ class SensitivityAnalysis(object):
         sobol_stats = pd.DataFrame(sobol_stats, index=self.problem["names"])
         smax = sobol_stats.max().max()
         smin = sobol_stats.min().min()
-        s2 = pd.DataFrame(sobol_indices["S2"], index=problem["names"],
-                columns=problem["names"])
+        s2 = pd.DataFrame(sobol_indices["S2"], index=self.problem["names"],
+                columns=self.problem["names"])
         s2[s2<0.0]=0. #Set negative values to 0 (artifact from small sample sizes)
         s2max = s2.max().max()
         s2min = s2.min().min()
         
-        names = problem["names"]
+        names = self.problem["names"]
         n = len(names)
         ticklocs = np.linspace(0, 2*pi, n+1)
         locs = ticklocs[0:-1]
@@ -772,12 +804,14 @@ class SensitivityAnalysis(object):
                 criterion, threshold)
         
         # setup figure
+        xnames = copy.copy(names)
+        xnames.extend(["D-Ratio"])
         fig = plt.figure()
         ax = fig.add_subplot(111, polar=True)
         ax.grid(False)
         ax.spines["polar"].set_visible(False)
         ax.set_xticks(ticklocs)
-        ax.set_xticklabels(names)
+        ax.set_xticklabels(xnames)
         ax.set_yticklabels([])
         ax.set_ylim(top=1.4)
         self._legend_(ax)
@@ -796,21 +830,26 @@ class SensitivityAnalysis(object):
             ax.plot([loc1, loc2], [1,1], c="darkgray", lw=lw, zorder=1)
         return fig
 
-    def analyze(self):
+    def analyze(self, regs=False):
         """ Analyze and plots sensitivity test results """
         self._hist_()
-        self._regression_()
-        labels = [r"$V_{d\eta}$ [m/s]", r"$V_{dh}$ [m/s]", r"$V_{t}$ [m/s]"]
-        params = ["vd_mean", "vf_mean", "vt_mean"]
-        for i, lab, pm in zip(range(3), labels, params):
-            Si = sobol.analyze(self.problem, self.ds.variables[pm][:].ravel(), calc_second_order=True, print_to_console=False)
-            Si_filter = {k:Si[k] for k in ["ST","ST_conf","S1","S1_conf"]}
-            Si_df = pd.DataFrame(Si_filter, index=self.problem["names"])
-            fig, ax = plt.subplots(1)
-            indices = Si_df[["S1","ST"]]
-            err = Si_df[["S1_conf","ST_conf"]]
-            indices.plot.bar(yerr=err.values.T,ax=ax)
-            fig.set_size_inches(4,4)
-            fig.savefig("data/sim/sens_{pm}.png".format(pm=pm), bbox_inches="tight")
-            plt.close()
+        if regs: print("None")#self._regression_()
+        else:
+            labels = [r"$V_{d\eta}$ [m/s]", r"$V_{dh}$ [m/s]", r"$V_{t}$ [m/s]"]
+            params = ["vd_mean", "vf_mean", "vt_mean"]
+            for i, lab, pm in zip(range(3), labels, params):
+                Si = sobol.analyze(self.problem, self.ds.variables[pm][:].ravel(), calc_second_order=True, print_to_console=False)
+                Si_filter = {k:Si[k] for k in ["ST","ST_conf","S1","S1_conf"]}
+                Si_df = pd.DataFrame(Si_filter, index=self.problem["names"])
+                fig, ax = plt.subplots(1)
+                indices = Si_df[["S1","ST"]]
+                err = Si_df[["S1_conf","ST_conf"]]
+                indices.plot.bar(yerr=err.values.T,ax=ax)
+                fig.set_size_inches(4,4)
+                fig.savefig("data/sim/sens_{pm}.png".format(pm=pm), bbox_inches="tight")
+                plt.close()
+                fig = self._plot_sobol_indices_(Si, criterion="ST", threshold=0.005)
+                fig.set_size_inches(4,4)
+                fig.savefig("data/sim/intv_{pm}.png".format(pm=pm), bbox_inches="tight")
+                plt.close()
         return
