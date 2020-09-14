@@ -20,6 +20,8 @@ from netCDF4 import Dataset, num2date
 import numpy as np
 import calendar
 from pysolar.solar import get_altitude
+import pytz
+from timezonefinder import TimezoneFinder
 
 def create_folder_structures(dn, stn):
     """ Create full folder structures for the simulations """
@@ -134,3 +136,11 @@ def get_sd_data(fname, bmnum):
     x = x[x.bmnum==bmnum]
     os.system("gzip " + fname.replace(".gz", ""))
     return x
+
+def calculate_LT(d, lat, lon):
+    """ Calculate local time from latitude and longitude """
+    tf = TimezoneFinder()
+    tzf = tf.timezone_at(lng=lon, lat=lat)
+    dn = d.replace(tzinfo=pytz.utc)
+    lt = dn.astimezone(pytz.timezone(tzf))
+    return lt

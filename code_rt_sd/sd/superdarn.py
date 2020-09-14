@@ -329,3 +329,85 @@ class Senstitivity(object):
         self._compute_doppler_()
         rec = self._compute_velocity_()
         return rec
+
+class ModelSensitivity(object):
+    """ SuperDARN Model Estimate """
+
+    def __init__(self, dn, rad, args, model="waccmx", bm=0, kind="as", jx=0):
+        """ Initialze the parameters """
+        for k in vars(args).keys():
+            setattr(self, k, vars(args)[k])
+        self.Re = 6371.
+        self.model = model
+        self.dn = dn
+        self.rad = rad
+        self.bm = bm
+        self.kind = kind
+        self.jx = jx
+        self.dic = "data/op/{dn}/{model}/{rad}/bm.{bm}/".format(dn=dn.strftime("%Y.%m.%d.%H.%M"), model=model, rad=rad, bm="%02d"%bm)
+        self.f_eden = "ne.ti(%02d).f.mat"%jx
+        self.b_eden = "ne.ti(%02d).d.mat"%jx
+        self.d_eden = "ne.ti(00).d.mat"
+        self._estimate_bearing_()
+        self.get_ratios()
+        return
+
+    def _estimate_bearing_(self):
+        """ Estimate laitude and logitude bearings """
+        os.system("mkdir -p data/sim/{dn}/{rad}/".format(dn=self.dn.strftime("%Y.%m.%d.%H.%M"), rad=self.rad))
+        fname = "data/sim/{dn}/{rad}/bearing.mat".format(dn=self.dn.strftime("%Y.%m.%d.%H.%M"), rad=self.rad)
+        m = {}
+        lat, lon, bearing = utils.get_sd_radar(self.rad)
+        p = (lat, lon)
+        gc = GC(p, p)
+        dist = np.linspace(0,self.mrange,self.nmrange)
+        lats, lons = [], []
+        for d in dist:
+            x = gc.destination(p, bearing, distance=d)
+            lats.append(x[0])
+            lons.append(x[1])
+        rinc = dist[1]-dist[0]
+        m["dist"], m["lat"], m["lon"] = dist, np.array(lats), np.array(lons)
+        m["olat"], m["olon"], m["rb"], m["num_range"], m["max_range"], m["range_inc"] = lat, lon, bearing, float(self.nmrange),\
+                float(self.mrange), float(rinc)
+        m["start_height"], m["height_inc"], m["num_heights"] = float(self.sheight), float(self.hinc),\
+                float(len(np.arange(self.sheight,self.eheight,self.hinc)))
+        m["ht"] = np.arange(self.sheight,self.eheight,self.hinc)
+        m["freq"], m["tol"], m["nhops"] = float(self.get_f()), float(1e-7), float(self.nhops)
+        m["elev_s"], m["elev_i"], m["elev_e"] = float(self.selev), float(self.ielev), float(self.eelev)
+        m["radius_earth"] = 6371.0
+        savemat(fname, m)
+        self.m, self.lat, self.lon, self.ht = m, m["lat"], m["lon"], m["ht"]
+        self.chi, self.lt = utils.calculate_sza(self.dn, np.mean(lats), np.mean(lons)),\
+                utils.calculate_LT(self.dn, np.mean(lats), np.mean(lons))
+        return
+
+    def get_ratios(self):
+        bgc = loadmat(self.dic + self.b_eden)["ne"]
+        flr = loadmat(self.dic + self.f_eden)["ne"]
+        dly = loadmat(self.dic + self.d_eden)["ne"]
+        rate = flr/bgc
+        ratio = flr/dly
+        self.drr, self.err, self.frr = np.max(rate[10:40,:]), np.max(rate[50:90,:]), np.max(rate[100:250,:])
+        self.dr, self.er, self.fr = np.max(ratio[10:40,:]), np.max(ratio[50:90,:]), np.max(ratio[100:250,:])
+        return
+
+    def get_f(self):
+        f = "data/op/{dn}/{model}/sd_{rad}_data.csv.gz".format(dn=self.dn.strftime("%Y.%m.%d.%H.%M"), model=self.model, rad=self.rad)
+        os.system("gzip -d " + f)
+        freq = np.median(pd.read_csv(f.replace(".gz", "")).tfreq)
+        os.system("gzip " + f.replace(".gz", ""))
+        return freq
+
+    def exe(self):
+        v1, v2, v1_max, v1_min, v2_max, v2_min = np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
+        frq, chi, lt = self.get_f(), self.chi, self.lt
+        dr, er, fr = self.dr, self.er, self.fr
+        drr, err, frr = self.drr, self.err, self.frr
+        if self.kind == "as": 
+            f = "data/op/{dn}/{model}/{rad}/bm.{bm}/".format(dn=self.dn.strftime("%Y.%m.%d.%H.%M"), model=self.model, 
+                    rad=self.rad, bm="%02d"%self.bm) + "velocity.ti(%02d).mat"%self.jx
+            ox = loadmat(f)
+            v1, v2, v1_max, v1_min, v2_max, v2_min = np.median(ox["vd"]), np.median(ox["vf"]),\
+                    np.max(ox["vd"]), np.min(ox["vd"]), np.max(ox["vf"]), np.min(ox["vf"])
+        return v1, v2, v1_max, v1_min, v2_max, v2_min, dr, er, fr, drr, err, frr, frq, chi, lt

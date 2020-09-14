@@ -33,6 +33,7 @@ import copy
 
 from SALib.sample import saltelli
 from SALib.analyze import sobol
+from SALib.analyze import rbd_fast
 
 import itertools
 from math import pi
@@ -852,4 +853,191 @@ class SensitivityAnalysis(object):
                 fig.set_size_inches(4,4)
                 fig.savefig("data/sim/intv_{pm}.png".format(pm=pm), bbox_inches="tight")
                 plt.close()
+        return
+
+class ModelSensitivity(object):
+    """ Sensitivity Analysis """
+
+    def __init__(self, ds):
+        """ Initialize parameters """
+        self.problem =  {
+                "num_vars": 3,
+                "names": ["D-Ratio", "E-Ratio", "F-Ratio"],
+                "bounds": [[np.min(ds.variables["d_ratio"][:]), np.max(ds.variables["d_ratio"][:])],
+                    [np.min(ds.variables["e_ratio"][:]), np.max(ds.variables["e_ratio"][:])],
+                    [np.min(ds.variables["f_ratio"][:]), np.min(ds.variables["f_ratio"][:])]]
+                }
+        self.ds = ds
+        print(np.max(ds.variables["d_ratio"][:]), np.min(ds.variables["d_ratio"][:]))
+        print(np.max(ds.variables["e_ratio"][:]), np.min(ds.variables["e_ratio"][:]))
+        print(np.max(ds.variables["f_ratio"][:]), np.min(ds.variables["f_ratio"][:]))
+        print(ds.variables.keys())
+        return
+
+    def _hist_(self):
+        """ Histogram of outputs """
+        fig, ax = plt.subplots(figsize=(9,9), nrows=3, ncols=3, sharey=True, sharex=True)
+        labels = [[r"$V_{d\eta}$ [m/s]", r"$V_{dh}$ [m/s]", r"$V_{t}$ [m/s]"],
+                [r"$V_{d\eta}^{max}$ [m/s]", r"$V_{dh}^{max}$ [m/s]", r"$V_{t}^{max}$ [m/s]"],
+                [r"$V_{d\eta}^{min}$ [m/s]", r"$V_{dh}^{min}$ [m/s]", r"$V_{t}^{min}$ [m/s]"]]
+        params = [["vn", "vh", "vt"], ["vn_max", "vh_max", "vt_max"], ["vn_min", "vh_min", "vt_min"]]
+        bins = range(-10,110,4)
+        for i, labs, pms in zip(range(3), labels, params):
+            for j, lab, pm in zip(range(3), labs, pms):
+                ax[i,j].hist(3*self.ds.variables[pm][:].ravel(), bins=bins)
+                ax[i,j].set_xlabel(lab)
+                ax[i,j].set_xlim(-20, 160)
+            ax[i,0].set_ylabel("Counts")
+        fig.subplots_adjust(wspace=0.1, hspace=0.3)
+        fig.savefig("data/sim/histogram.png", bbox_inches="tight")
+        return
+
+    def _regression_(self):
+        """ Regression Analysis """
+        import scipy
+        import seaborn as sns
+        ylabels = [r"$V_{d\eta}$ [m/s]", r"$V_{dh}$ [m/s]", r"$V_{t}$ [m/s]"]
+        xlabels = [r"$Ratio_{D}$", r"$Ratio_{E}$", r"$Ratio_{F}$", r"$Rate_{D}$", r"$Rate_{E}$", r"$Rate_{F}$", r"$Frequency$", "SZA"]
+        yparam = ["vn", "vh", "vt"]
+        xparam = ["d_ratio", "e_ratio", "f_ratio", "d_rate", "e_rate", "f_rate", "frequency", "sza"]
+        Xx = np.array([self.ds.variables["d_ratio"][:], self.ds.variables["e_ratio"][:], self.ds.variables["f_ratio"][:],
+            self.ds.variables["d_rate"][:], self.ds.variables["e_rate"][:], self.ds.variables["f_rate"][:],
+            self.ds.variables["frequency"][:], self.ds.variables["sza"][:]]).T
+        print(Xx.shape)
+        for i, ylab, yp in zip(range(3), ylabels, yparam):
+            fig, ax = plt.subplots(2, 4, sharey=True, figsize=(10,5))
+            y = self.ds.variables[yp][:].ravel()
+            for j, xlab, xp in zip(range(8), xlabels, xparam):
+                a = ax[np.mod(j,2), int(j/2)]
+                x = Xx[:,j]#self.ds.variables["parameters"][:][:,j]
+                sns.regplot(x, y, ax=a, ci=95, color="k",scatter_kws={"alpha":0.2, "s":1.5, "color":"red"})
+                pearson = scipy.stats.pearsonr(x, y)
+                a.annotate("r: {:6.3f}".format(pearson[0]), xy=(0.15, 0.85), xycoords="axes fraction",fontsize=13)
+                a.set_xlabel(xlab)
+                if j==0: a.set_ylabel(ylab)
+            fig.subplots_adjust(wspace=0.1, hspace=0.5)
+            fig.savefig("data/sim/reg_{pm}.png".format(pm=yp), bbox_inches="tight")
+            plt.close()
+        return
+
+    def _normalize_(self, x, xmin, xmax):
+        return (x-xmin)/(xmax-xmin)
+
+    def _plot_circles_(self, ax, locs, names, max_s, stats, smax, smin, fc, ec, lw, zorder):
+        s = np.asarray([stats[name] for name in names])
+        s = 0.01 + max_s * np.sqrt(self._normalize_(s, smin, smax))
+        
+        fill = True
+        for loc, name, si in zip(locs, names, s):
+            if fc=="w": fill=False
+            else: ec="none"           
+            x = np.cos(loc)
+            y = np.sin(loc)
+            
+            circle = plt.Circle((x,y), radius=si, ec=ec, fc=fc, transform=ax.transData._b,
+                    zorder=zorder, lw=lw, fill=True)
+            ax.add_artist(circle)
+        return
+
+    def _filter_(self, sobol_indices, names, locs, criterion, threshold):
+        if criterion in ["ST", "S1", "S2"]:
+            data = sobol_indices[criterion]
+            data = np.abs(data)
+            data = data.flatten() # flatten in case of S2
+            # TODO:: remove nans
+            filtered = ([(name, locs[i]) for i, name in enumerate(names) if
+                data[i]>threshold])
+            filtered_names, filtered_locs = zip(*filtered)
+        elif criterion in ["ST_conf", "S1_conf", "S2_conf"]: raise NotImplementedError
+        else: raise ValueError("unknown value for criterion")
+        return filtered_names, filtered_locs
+
+    def _legend_(self, ax):
+        some_identifiers = [plt.Circle((0,0), radius=5, color="k", fill=False, lw=1),
+                plt.Circle((0,0), radius=5, color="k", fill=True),
+                plt.Line2D([0,0.5], [0,0.5], lw=8, color="darkgray")]
+        ax.legend(some_identifiers, ["ST", "S1", "S2"],
+                loc=(1,0.75), borderaxespad=0.1, mode="expand",
+                handler_map={plt.Circle: HandlerCircle()})
+        return
+
+    def _plot_sobol_indices_(self, sobol_indices, criterion="ST", threshold=0.01):
+        max_linewidth_s2 = 15#25*1.8
+        max_s_radius = 0.3
+        sobol_stats = {key:sobol_indices[key] for key in ["ST", "S1"]}
+        sobol_stats = pd.DataFrame(sobol_stats, index=self.problem["names"])
+        smax = sobol_stats.max().max()
+        smin = sobol_stats.min().min()
+        s2 = pd.DataFrame(sobol_indices["S2"], index=self.problem["names"],
+                columns=self.problem["names"])
+        s2[s2<0.0]=0. #Set negative values to 0 (artifact from small sample sizes)
+        s2max = s2.max().max()
+        s2min = s2.min().min()
+        
+        names = self.problem["names"]
+        n = len(names)
+        ticklocs = np.linspace(0, 2*pi, n+1)
+        locs = ticklocs[0:-1]
+        
+        filtered_names, filtered_locs = self._filter_(sobol_indices, names, locs,
+                criterion, threshold)
+        
+        # setup figure
+        xnames = copy.copy(names)
+        xnames.extend(["D-Ratio"])
+        fig = plt.figure()
+        ax = fig.add_subplot(111, polar=True)
+        ax.grid(False)
+        ax.spines["polar"].set_visible(False)
+        ax.set_xticks(ticklocs)
+        ax.set_xticklabels(xnames)
+        ax.set_yticklabels([])
+        ax.set_ylim(top=1.4)
+        self._legend_(ax)
+        # plot ST
+        self._plot_circles_(ax, filtered_locs, filtered_names, max_s_radius,
+                sobol_stats["ST"], smax, smin, "w", "k", 1, 9)
+        # plot S1
+        self._plot_circles_(ax, filtered_locs, filtered_names, max_s_radius,
+                sobol_stats["S1"], smax, smin, "k", "k", 1, 10)
+        # plot S2
+        for name1, name2 in itertools.combinations(zip(filtered_names, filtered_locs), 2):
+            name1, loc1 = name1
+            name2, loc2 = name2
+            weight = s2.loc[name1, name2]
+            lw = 0.5+max_linewidth_s2*self._normalize_(weight, s2min, s2max)
+            ax.plot([loc1, loc2], [1,1], c="darkgray", lw=lw, zorder=1)
+        return fig
+
+    def analyze(self, regs=True):
+        """ Analyze and plots sensitivity test results """
+        self._hist_()
+        if regs: 
+            print("None")
+            self._regression_()
+        else:
+            print(regs)
+            labels = [r"$V_{d\eta}$ [m/s]", r"$V_{dh}$ [m/s]", r"$V_{t}$ [m/s]"]
+            params = ["vn", "vh", "vt"]
+            for i, lab, pm in zip(range(3), labels, params):
+                v = self.ds.variables[pm][:].ravel()
+                x = np.array([self.ds.variables["d_rate"][:], self.ds.variables["e_rate"][:], self.ds.variables["f_rate"][:]]).T
+                print(v.shape, x.shape)
+                #Si = rbd_fast.analyze(self.problem, x, v, M=10, print_to_console=False)
+                #print(Si)
+                Si = sobol.analyze(self.problem, self.ds.variables[pm][:].ravel(), calc_second_order=True, print_to_console=False)
+                #print(Si)
+                Si_filter = {k:Si[k] for k in ["ST","ST_conf","S1","S1_conf"]}
+                Si_df = pd.DataFrame(Si_filter, index=self.problem["names"])
+                fig, ax = plt.subplots(1)
+                indices = Si_df[["S1","ST"]]
+                err = Si_df[["S1_conf","ST_conf"]]
+                indices.plot.bar(yerr=err.values.T,ax=ax)
+                fig.set_size_inches(4,4)
+                fig.savefig("data/sim/sens_{pm}.png".format(pm=pm), bbox_inches="tight")
+                plt.close()
+                #fig = self._plot_sobol_indices_(Si, criterion="ST", threshold=0.005)
+                #fig.set_size_inches(4,4)
+                #fig.savefig("data/sim/intv_{pm}.png".format(pm=pm), bbox_inches="tight")
+                #plt.close()
         return

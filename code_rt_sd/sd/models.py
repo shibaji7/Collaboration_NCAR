@@ -32,6 +32,8 @@ import utils
 import plotlib
 
 
+INT_F = 300
+INT_R = 300
 def extrap1d(x,y,kind="linear"):
     """ This method is used to extrapolate 1D paramteres """
     interpolator = interp1d(x,y,kind=kind)
@@ -246,10 +248,10 @@ class Model(object):
             if elvi in elvrang:
                 d = pd.read_csv(fi)
                 b = pd.read_csv(fj)
-                f = trapz(signal.resample(d.dop,1000))
+                f = trapz(signal.resample(d.dop,INT_F))
                 #f = trapz(np.array(d.dop), np.array(d.grange))
                 #f = (trapz(np.array(d.dop), np.array(d.grange)/np.cos(np.deg2rad(90-elvi))))
-                srng[itr] = trapz(signal.resample(d.sth,300))
+                srng[itr] = trapz(signal.resample(d.sth,INT_R))
                 vd[itr] = (0.5 * f * 3e8 / (self.frequency * 1e6))
                 vf[itr] = _estimate_dop_delh_(d,b)
                 itr += 1
