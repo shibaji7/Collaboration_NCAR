@@ -30,7 +30,9 @@ from scipy import signal
 from get_sd_data import FetchData
 import utils
 import plotlib
-
+import sys
+sys.path.append("sd_cartopy/")
+import rad_fov
 
 INT_F = 300
 INT_R = 300
@@ -93,7 +95,7 @@ class Model(object):
                     rad=self.rad, model=self.model, bm="%02d"%self.bmnum),
                 "eden.nc": "{du}.nc",
                 "eden.gz": "data/op/{dn}/{model}/{du}.nc.gz",
-                "eden.mat": "ne.ti({ti}).{case}.mat",
+                "eden.mat": "ne_ti({ti})_{case}.mat",
                 }
         if self.tsim_start is None: self.tsim_start = 0
         if self.tsim_end is None: self.tsim_end = int((self.end-self.start).total_seconds()/60.)
@@ -137,15 +139,16 @@ class Model(object):
             self._compute_doppler_(i)
             self._plot_radstn_(i)
             txt = r"$V_{d\eta}$=%.1f, $V_{dh}$=%.1f"%(self.vd,self.vf)
-            plotlib.plot_rays_base(self.files["run"], self.start + dt.timedelta(minutes=i), i, self.bmnum, case, txt)
+            plotlib.plot_rays_base(self.files["run"], self.start + dt.timedelta(minutes=i), i, self.bmnum, case, txt, showrefract=True, 
+                    freq=self.frequency)
         return
     
     def _plot_radstn_(self, i):
         """ Plot radar station """
         fname = self.files["run"]+"eden_ti({i}).png".format(i="%02d"%i)
-        p = loadmat(self.files["run"] + "ne.ti({ti}).d.mat".format(ti="%02d"%i))["ne"][:,0]
-        f = loadmat(self.files["run"] + "ne.ti({ti}).f.mat".format(ti="%02d"%i))["ne"][:,0]
-        b = loadmat(self.files["run"] + "ne.ti({ti}).d.mat".format(ti="%02d"%0))["ne"][:,0]
+        p = loadmat(self.files["run"] + "ne_ti({ti})_d.mat".format(ti="%02d"%i))["ne"][:,0]
+        f = loadmat(self.files["run"] + "ne_ti({ti})_f.mat".format(ti="%02d"%i))["ne"][:,0]
+        b = loadmat(self.files["run"] + "ne_ti({ti})_d.mat".format(ti="%02d"%0))["ne"][:,0]
         plotlib.plot_radstn_base(b,p,f,self.ht,fname,self.rlat,self.rlon,self.start+dt.timedelta(minutes=i))
         return
 
@@ -182,7 +185,7 @@ class Model(object):
         """ Compute RT using Pharlap """
         u = self.start + dt.timedelta(minutes=i)
         dic = self.files["run"]
-        fname = dic + "ti({ti}).elv(<elv>).{case}.csv".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), ti="%02d"%i, case=case)
+        fname = dic + "ti({ti})_elv(<elv>)_{case}.csv".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"), ti="%02d"%i, case=case)
         cmd = "export DIR_MODELS_REF_DAT=/home/shibaji/Collaboration_NCAR/code_rt_sd/pharlap/pharlap_4.1.3/dat;\
                 cd pharlap;\
                 matlab -nodisplay -nodesktop -nosplash -nojvm -r \"UT=[{ut}];rad='{rad}';dic='{dic}';fname='{fname}';bm={bm};\
@@ -196,17 +199,17 @@ class Model(object):
         kconst, cconst, delt = 80.6, 3e8, self.rtime*60
         dic = self.files["run"]
         grange, height = self.m["dist"], self.ht
-        fnd = glob.glob(dic + "ti({ti}).elv(*).d.csv".format(ti="%02d"%i))
-        fnf = glob.glob(dic + "ti({ti}).elv(*).f.csv".format(ti="%02d"%i))
+        fnd = glob.glob(dic + "ti({ti})_elv(*)_d.csv".format(ti="%02d"%i))
+        fnf = glob.glob(dic + "ti({ti})_elv(*)_f.csv".format(ti="%02d"%i))
         fnd.sort()
         fnf.sort()
-        ned = loadmat(dic + "ne.ti({ti}).d.mat".format(ti="%02d"%i))["ne"]*1e6
-        nef = loadmat(dic + "ne.ti({ti}).f.mat".format(ti="%02d"%i))["ne"]*1e6
+        ned = loadmat(dic + "ne_ti({ti})_d.mat".format(ti="%02d"%i))["ne"]*1e6
+        nef = loadmat(dic + "ne_ti({ti})_f.mat".format(ti="%02d"%i))["ne"]*1e6
         funcf = interp2d(grange,height,np.log10(nef))
         funcd = interp2d(grange,height,np.log10(ned))
         for fi in fnf:
             dop, dth, sth = [], [], []
-            elvi, rayi = float(fi.split(".")[-3][4:-1]), pd.read_csv(fi)
+            elvi, rayi = float(fi.split("_")[-2][4:-1]), pd.read_csv(fi)
             gi, hi = np.array(rayi.grange), np.array(rayi.height)
             dth.append(0.)
             sth.append(0.)
@@ -238,13 +241,13 @@ class Model(object):
             return xd
         elvrang = np.arange(self.selev_d, self.eelev_d+1, self.ielev_d)
         dic = self.files["run"]
-        fnd = glob.glob(dic + "ti({ti}).elv(*).d.csv".format(ti="%02d"%i))
-        fnf = glob.glob(dic + "ti({ti}).elv(*).f.csv".format(ti="%02d"%i))
+        fnd = glob.glob(dic + "ti({ti})_elv(*)_d.csv".format(ti="%02d"%i))
+        fnf = glob.glob(dic + "ti({ti})_elv(*)_f.csv".format(ti="%02d"%i))
         fnd.sort()
         fnf.sort()
         vd, vf, srng,itr = np.zeros(len(elvrang)), np.zeros(len(elvrang)), np.zeros(len(elvrang)), 0
         for fi, fj in zip(fnf, fnd):
-            elvi = float(fi.split(".")[-3][4:-1])
+            elvi = float(fi.split("_")[-2][4:-1])
             if elvi in elvrang:
                 d = pd.read_csv(fi)
                 b = pd.read_csv(fj)
@@ -255,7 +258,7 @@ class Model(object):
                 vd[itr] = (0.5 * f * 3e8 / (self.frequency * 1e6))
                 vf[itr] = _estimate_dop_delh_(d,b)
                 itr += 1
-        fn = dic + "velocity.ti({ti}).mat".format(ti="%02d"%i)
+        fn = dic + "velocity_ti({ti}).mat".format(ti="%02d"%i)
         m = {"vd": vd, "vf": vf, "srng": srng}
         savemat(fn, m)
         self.vd = np.mean(vd.max()+vd.min())
@@ -300,7 +303,7 @@ class Base(object):
         """ Create Conn """
         self.ssh = SSHClient()
         self.ssh.load_system_host_keys()
-        self.ssh.connect(hostname="cheyenne.ucar.edu", port = 22, username="shibaji", password="0513-shibaji-cit")
+        self.ssh.connect(hostname="cheyenne.ucar.edu", port = 22, username="shibaji", password="0514-shibaji-cit")
         self.scp = SCPClient(self.ssh.get_transport())
         self.con = True
         return
@@ -366,6 +369,7 @@ class Base(object):
         path = self.files["base"] + self.rad + "/"
         def to_gate(srng, irng=180, drng=45):
             gt = (srng/1000 - 180)/45
+            gt[-1] = gt[-2]
             return gt
         fanplot = plotlib.FanPlot()
         data_dic = {"vel":[], "beam":[], "gate":[]}
@@ -373,7 +377,7 @@ class Base(object):
             vel, beam, gate = [], [], []
             for bm in range(24):
                 rdic = "data/op/{dn}/{model}/{rad}/bm.{bm}/".format(dn=self.event.strftime("%Y.%m.%d.%H.%M"),
-                        rad=self.rad, model=self.model, bm="%02d"%bm) + "velocity.ti({ti}).mat".format(ti="%02d"%i)
+                        rad=self.rad, model=self.model, bm="%02d"%bm) + "velocity_ti({ti}).mat".format(ti="%02d"%i)
                 m = loadmat(rdic)
                 vt, srng, l = m["vd"][0] + m["vf"][0], m["srng"][0], len(m["srng"][0])
                 gt = to_gate(srng)
@@ -384,13 +388,32 @@ class Base(object):
             data_dic["vel"].append(np.array(vel))
             data_dic["beam"].append(np.array(beam))
             data_dic["gate"].append(np.array(gate))
-        fanplot.plot_fov(data_dic, range(self.tsim_start, self.tsim_end), "Radar- %s, Model- %s"%(self.rad, self.model),
-                self.start, self.raw_dic, skip=self.skip, base_filepath=path)
+        fanplot.plot_geo_fov(self.rad, data_dic, range(self.tsim_start, self.tsim_end), "", 
+                self.start, self.raw_dic, skip=1, base_filepath=path)
+        #fanplot.plot_fov(data_dic, range(self.tsim_start, self.tsim_end), "Radar- %s, Model- %s"%(self.rad, self.model),
+        #        self.start, self.raw_dic, skip=self.skip, base_filepath=path)
         return
+
+    def _to_latlon(self, _dict_):
+        import pydarn
+        hdw = pydarn.read_hdw_file(self.rad)
+        rf = rad_fov.CalcFov(hdw=hdw, ngates=75)
+        lons, lats = rf.lonFull, rf.latFull
+        _dict_["lat"], _dict_["lon"] = [], []
+        for bs, gs in zip(_dict_["beam"], _dict_["gate"]):
+            lat, lon = [], []
+            for b, g in zip(bs, gs):
+                lon.append(lons[b, np.round(g).astype(int)].tolist())
+                lat.append(lats[b, np.round(g).astype(int)].tolist())
+            _dict_["lat"].append(np.array(lat))
+            _dict_["lon"].append(np.array(lon))
+        return _dict_
 
     def _exe_(self):
         """ Execute data simulations """
-        self._fetch_sd_()
+        try:
+            self._fetch_sd_()
+        except: print("Not able to download data!")
         if hasattr(self, "plot_summary") and self.plot_summary: self._plot_summary_()
         else:
             for i in range(self.tsim_start, self.tsim_end):

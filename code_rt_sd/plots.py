@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""model_sim.py: simulate python program for Doppler shift"""
+"""plot.py: plot for publications program for Doppler shift"""
 
 __author__ = "Chakraborty, S."
 __copyright__ = "Copyright 2020, SuperDARN@VT"
@@ -14,24 +14,24 @@ __status__ = "Research"
 import os
 import sys
 sys.path.append("sd/")
-sys.path.append("sd_carto/")
 import datetime as dt
 import argparse
 from dateutil import parser as dparser
 
-from models import WACCM
+from plotutil import *
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser()
         parser.add_argument("-m", "--model", default="waccmx", help="Model name [tgcm/waccmx] (default tgcm)")
         parser.add_argument("-r", "--rad", default="bks", help="Radar code (default bks)")
-        parser.add_argument("-ev", "--event", default=dt.datetime(2015,5,5,22,11), help="Start date",
+        parser.add_argument("-ev", "--event", default=dt.datetime(2015,3,11,16,22), help="Start date (default 2015-3-11T16:22)",
                 type=dparser.isoparse)
+        parser.add_argument("-b", "--bmnum", type=int, default=0, help="Beam num starting from 0 in center and +, - on right-left")
         parser.add_argument("-ts", "--tsim_start", type=int, default=None, help="Minutes to simulate start (0-...) (default None)")
         parser.add_argument("-te", "--tsim_end", type=int, default=None, help="Minutes to simulate end (1-...) (default None)")
-        parser.add_argument("-s", "--start", default=dt.datetime(2015,5,5,21,50), help="Start date",
+        parser.add_argument("-s", "--start", default=dt.datetime(2015,3,11,16), help="Start date (default 2015-3-11T16:05)",
                 type=dparser.isoparse)
-        parser.add_argument("-e", "--end", default=dt.datetime(2015,5,5,22,51), help="End date",
+        parser.add_argument("-e", "--end", default=dt.datetime(2015,3,11,17,1), help="End date (default 2015-3-11T16:25)",
                 type=dparser.isoparse)
         parser.add_argument("-rd", "--save_radar", action="store_false", help="Save riometer data (default True)")
         parser.add_argument("-ps", "--plot_summary", action="store_true", help="Plot summary report (default False)")
@@ -47,20 +47,21 @@ if __name__ == "__main__":
         parser.add_argument("-hinc", "--hinc", type=float, default=1., help="Step in height in km (default 1 km)")
         parser.add_argument("-es", "--selev", type=float, default=16., help="Start elevation angle deg")
         parser.add_argument("-ee", "--eelev", type=float, default=30., help="End elevation angle deg")
-        parser.add_argument("-ei", "--ielev", type=float, default=0.5, help="Inc of elevation angle deg (default 20*)")
+        parser.add_argument("-ei", "--ielev", type=float, default=1., help="Inc of elevation angle deg (default 20*)")
         parser.add_argument("-nhops", "--nhops", type=float, default=1, help="Number of hops (default 1)")
         parser.add_argument("-rt", "--rtime", type=float, default=1., help="Rise time, (1 min)")
         parser.add_argument("-th", "--threshold", type=float, default=1.e-5, help="Threshold for risetime, (1.e-5)")
         parser.add_argument("-es_d", "--selev_d", type=float, default=16., help="Start elevation angle deg for doppler cal.")
         parser.add_argument("-ee_d", "--eelev_d", type=float, default=30., help="End elevation angle deg for doppler cal.")
-        parser.add_argument("-ei_d", "--ielev_d", type=float, default=0.5, help="Inc of elevation angle deg (default 20*) doppler cal.")
+        parser.add_argument("-ei_d", "--ielev_d", type=float, default=1., help="Inc of elevation angle deg (default 20*) doppler cal.")
         args = parser.parse_args()
         if args.verbose:
             print("\n Parameter list for simulation ")
             for k in vars(args).keys():
                 print("     " , k , "->" , str(vars(args)[k]))
-        if args.model == "waccmx": WACCM(args)._exe_()
-        if args.model == "tgcm": print("TODO")
+        #plot_rti(rad="bks", stime=dt.datetime(2015,5,5,21,50), etime=dt.datetime(2015,5,5,22,50), 
+        #        fs=dt.datetime(2015,5,5,22,7,40), bs=dt.datetime(2015,5,5,22,9,30))
+        plot_supermag()
         print("")
         if os.path.exists("sd/__pycache__/"):
             os.system("rm -rf sd/__pycache__/")

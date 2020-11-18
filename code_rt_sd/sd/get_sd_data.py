@@ -208,7 +208,7 @@ class FetchData(object):
         return _b, _s
 
     def convert_to_pandas(self, beams, s_params=["bmnum", "noise.sky", "tfreq", "scan", "nrang", "time"],
-            v_params=["elv", "v", "w_l", "gflg", "p_l", "slist", "v_e"]):
+            v_params=["v", "w_l", "gflg", "p_l", "slist", "v_e"]):
         """
         Convert the beam data into dataframe
         """
@@ -219,7 +219,6 @@ class FetchData(object):
                 _o[p].extend(getattr(b, p))
             for p in s_params:
                 _o[p].extend([getattr(b, p)]*l)
-
         return pd.DataFrame.from_records(_o)
 
     def fetch_data(self, s_params=["bmnum", "noise.sky", "tfreq", "scan", "nrang"],

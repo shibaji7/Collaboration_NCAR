@@ -35,6 +35,11 @@ if __name__ == "__main__":
     t = []
     zg = {"dly": np.zeros((1, 126, 96, 144)), "flr": np.zeros((1, 126, 96, 144))}
     ne = {"dly": np.zeros((1, 126, 96, 144)), "flr": np.zeros((1, 126, 96, 144))}
+    sp = {"dly": np.zeros((1, 126, 96, 144)), "flr": np.zeros((1, 126, 96, 144))}
+    sh = {"dly": np.zeros((1, 126, 96, 144)), "flr": np.zeros((1, 126, 96, 144))}
+    ui = {"dly": np.zeros((1, 126, 96, 144)), "flr": np.zeros((1, 126, 96, 144))}
+    vi = {"dly": np.zeros((1, 126, 96, 144)), "flr": np.zeros((1, 126, 96, 144))}
+    wi = {"dly": np.zeros((1, 126, 96, 144)), "flr": np.zeros((1, 126, 96, 144))}
     for case, date, ty in zip(cases, dates, typs):
         tm = int((date - date.replace(hour=0, minute=0, second=0)).total_seconds()/(24*60))*(24*60)
         f = fname.format(ev=event.strftime("%Y.%m.%d.%H.%M"), case=ty, dn=event.strftime("%Y-%m-%d"), tm="%05d"%tm)    
@@ -47,6 +52,11 @@ if __name__ == "__main__":
         tm = tx.index(date)
         zg[case][0,:,:,:] = rdat.variables["Z3"][tm,:,:,:]
         ne[case][0,:,:,:] = rdat.variables["EDens"][tm,:,:,:]
+        sp[case][0,:,:,:] = rdat.variables["SIGMAPED"][tm,:,:,:]
+        sh[case][0,:,:,:] = rdat.variables["SIGMAHAL"][tm,:,:,:]
+        ui[case][0,:,:,:] = rdat.variables["UI"][tm,:,:,:]
+        vi[case][0,:,:,:] = rdat.variables["VI"][tm,:,:,:]
+        wi[case][0,:,:,:] = rdat.variables["WI"][tm,:,:,:]
     ldat.createDimension("lat", len(lat[:]))
     ldat.createDimension("lon", len(lon[:]))
     ldat.createDimension("lev", len(lev[:]))
@@ -58,7 +68,20 @@ if __name__ == "__main__":
             ldat.createVariable("ZGf","f4",("time", "lev", "lat","lon")),\
             ldat.createVariable("NEd","f4",("time", "lev", "lat","lon")),\
             ldat.createVariable("NEf","f4",("time", "lev", "lat","lon"))
+    rSPd, rSPf, rSHd, rSHf = ldat.createVariable("SPd","f4",("time", "lev", "lat","lon")),\
+            ldat.createVariable("SPf","f4",("time", "lev", "lat","lon")),\
+            ldat.createVariable("SHd","f4",("time", "lev", "lat","lon")),\
+            ldat.createVariable("SHf","f4",("time", "lev", "lat","lon"))
+    rUId, rUIf, rVId, rVIf = ldat.createVariable("UId","f4",("time", "lev", "lat","lon")),\
+            ldat.createVariable("UIf","f4",("time", "lev", "lat","lon")),\
+            ldat.createVariable("VId","f4",("time", "lev", "lat","lon")),\
+            ldat.createVariable("VIf","f4",("time", "lev", "lat","lon"))
+    rWId, rWIf = ldat.createVariable("WId","f4",("time", "lev", "lat","lon")),\
+            ldat.createVariable("WIf","f4",("time", "lev", "lat","lon"))
     rZGd[:], rZGf[:], rNEd[:], rNEf[:] = zg["dly"][:], zg["flr"][:], ne["dly"][:], ne["flr"][:]
+    rSPd[:], rSPf[:], rSHd[:], rSHf[:] = sp["dly"][:], sp["flr"][:], sh["dly"][:], sh["flr"][:]
+    rUId[:], rUIf[:], rVId[:], rVIf[:] = ui["dly"][:], ui["flr"][:], vi["dly"][:], vi["flr"][:]
+    rWId[:], rWIf[:] = wi["dly"][:], wi["flr"][:]
     ldat.close()
     rdat.close()
     os.system("gzip tmp/waccmx.nc")

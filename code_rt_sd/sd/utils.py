@@ -23,6 +23,20 @@ from pysolar.solar import get_altitude
 import pytz
 from timezonefinder import TimezoneFinder
 
+
+def smooth(x, window_len=51, window="hanning"):
+    if x.ndim != 1: raise ValueError("smooth only accepts 1 dimension arrays.")
+    if x.size < window_len: raise ValueError("Input vector needs to be bigger than window size.")
+    if window_len<3: return x
+    if not window in ["flat", "hanning", "hamming", "bartlett", "blackman"]: raise ValueError("Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'")
+    s = np.r_[x[window_len-1:0:-1],x,x[-2:-window_len-1:-1]]
+    if window == "flat": w = numpy.ones(window_len,"d")
+    else: w = eval("np."+window+"(window_len)")
+    y = np.convolve(w/w.sum(),s,mode="valid")
+    d = window_len - 1
+    y = y[int(d/2):-int(d/2)]
+    return y
+
 def create_folder_structures(dn, stn):
     """ Create full folder structures for the simulations """
     folder = "data/sim/{dn}/{stn}".format(dn=dn.strftime("%Y.%m.%d.%H.%M"), stn=stn)
@@ -144,3 +158,97 @@ def calculate_LT(d, lat, lon):
     dn = d.replace(tzinfo=pytz.utc)
     lt = dn.astimezone(pytz.timezone(tzf))
     return lt
+
+def get_gridded_parameters(q, xparam="time", yparam="slist", zparam="v"):
+    """
+    Method converts scans to "beam" and "slist" or gate
+    """
+    plotParamDF = q[ [xparam, yparam, zparam] ]
+    plotParamDF[xparam] = plotParamDF[xparam].tolist()
+    plotParamDF[yparam] = plotParamDF[yparam].tolist()
+    plotParamDF = plotParamDF.groupby( [xparam, yparam] ).mean().reset_index()
+    plotParamDF = plotParamDF[ [xparam, yparam, zparam] ].pivot( xparam, yparam )
+    x = plotParamDF.index.values
+    y = plotParamDF.columns.levels[1].values
+    X, Y  = np.meshgrid( x, y )
+    # Mask the nan values! pcolormesh can't handle them well!
+    Z = np.ma.masked_where(
+            np.isnan(plotParamDF[zparam].values),
+            plotParamDF[zparam].values)
+    print(Z.shape, X.shape, Y.shape)
+    return X,Y,Z
+
+def medfilt2D_weight(X, kernel=np.array([[1,3,1],[3,5,3],[1,3,1]]), tau=0.7):
+    """
+    Weighted median filter
+    """
+    Y = np.zeros_like(X) * np.nan
+    for i in range(1, X.shape[0]-2):
+        for j in range(1, X.shape[1]-2):
+            x = X[i-1:i+2, j-1:j+2]
+            w = np.repeat(x.filled(np.nan).ravel(), kernel.ravel())
+            if np.sum(kernel[np.logical_not(np.ma.getmask(x))])/np.sum(kernel) >= tau: Y[i,j] = np.nanmedian(w)
+    Y = np.ma.masked_invalid(Y)
+    return Y
+
+class InterpolateData(object):
+    """ Interpolate data from lev to Zh """
+
+    def __init__(self):
+        return
+
+    def extrap1d(self,x,y,kind="linear"):
+        """ This method is used to extrapolate 1D paramteres """
+        from scipy.interpolate import interp1d
+        from scipy import array
+        interpolator = interp1d(x,y,kind=kind)
+        xs = interpolator.x
+        ys = interpolator.y
+        def pointwise(x):
+            if x < xs[0]: return ys[0]+(x-xs[0])*(ys[1]-ys[0])/(xs[1]-xs[0])
+            elif x > xs[-1]: return ys[-1]+(x-xs[-1])*(ys[-1]-ys[-2])/(xs[-1]-xs[-2])
+            else: return interpolator(x)
+        def ufunclike(xs):
+            return array(list(map(pointwise, array(xs))))
+        return ufunclike
+
+    def _get_ij_(self, lats, lons, lat, lon):
+        """ Get (lat, lon) index """
+        _ij_ = (np.argmin(np.abs(lats-lat)), np.argmin(np.abs(lons-lon)))
+        return _ij_
+
+    def _intp_heights_(self, h, hx, param, scale="linear", kind="cubic"):
+        from scipy.interpolate import interp1d
+        if scale == "linear": pnew = interp1d(h, param, kind=kind)(hx)
+        if scale == "log": pnew = 10**interp1d(h, np.log10(param), kind=kind)(hx)
+        return pnew
+
+    def _intp_latlon_(self, lats, lons, latx, lonx, param, scale="linear", kind="cubic"):
+        from scipy.interpolate import interp2d
+        if scale == "linear": pnew = interp2d(lats, lons, param.T, kind=kind)(latx, lonx).T
+        if scale == "log": pnew = 10**interp2d(lats, lons, np.log10(param.T), kind=kind)(latx, lonx).T
+        return pnew
+
+    def _intp_(self, h, lats, lons, param, hd=[50,350,1], dlat=0.5, dlon=1, scale="log", kind="cubic", v=True):
+        lonx = np.arange(np.min(lons), np.max(lons)+dlon, dlon)
+        latx = np.arange(np.min(lats), np.max(lats)+dlat, dlat)
+        param_intm = np.zeros((len(h), len(latx), len(lonx)))
+        h_intm = np.zeros((len(h), len(latx), len(lonx)))
+        for k,_ in enumerate(h):
+            param_intm[k, :, :] = self._intp_latlon_(lats, lons, latx, lonx, param[k, :, :], scale, kind)
+            h_intm[k, :, :] = self._intp_latlon_(lats, lons, latx, lonx, h[k, :, :], scale, kind)
+        if v: print("\tLatlon convt.")
+        hx = np.arange(hd[0],hd[1],hd[2])
+        pnew = np.zeros((len(hx), len(latx), len(lonx)))
+        for i,_ in enumerate(latx):
+            for j,_ in enumerate(lonx):
+                pnew[:,i,j] = 10**(self.extrap1d(h_intm[:, i, j], np.log10(param_intm[:, i, j]))(hx))
+        if v: print("\tHeight convt.")
+        return pnew, hx, latx, lonx
+
+    def _intrp_(self, h, lats, lons, param, hd=300, v=True):
+        param_x = np.zeros((len(lats), len(lons))) * np.nan
+        for i in range(len(lats)):
+            for j in range(len(lons)):
+                param_x[i,j] = param[np.argmin(np.abs(h[:, i, j]-hd)), i, j]
+        return param_x
