@@ -147,6 +147,7 @@ def addColorbar(mappable, ax):
     _ = plt.colorbar(mappable, cax=cbax, shrink=0.7)
     return cbax
 
+
 def curvedEarthAxes(rect=111, fig=None, minground=0., maxground=2000, minalt=0,
                             maxalt=500, Re=6371., nyticks=5, nxticks=4):
     """
@@ -741,6 +742,7 @@ class FanPlot(object):
                     vmax=vel_max, vmin=-vel_max)
             dat_ax.text(1.02, 0.15, "Simulation", horizontalalignment="center",
                     verticalalignment="center", transform=dat_ax.transAxes, fontdict={"color":"red"}, rotation=90)
+            Vmod = np.copy(Vx)
 
             Vx = np.zeros((self.nbeam, self.nrange))*np.nan
             idbs, idgs = data["beam"][i], data["gate"][i]
@@ -755,6 +757,11 @@ class FanPlot(object):
                     vmax=vel_max, vmin=-vel_max)
             vel_ax.text(1.02, 0.15, "Observations", horizontalalignment="center",
                     verticalalignment="center", transform=vel_ax.transAxes, fontdict={"color":"red"}, rotation=90)
+            rmse = np.sqrt(np.ma.sum((Vx-Vmod)**2)/np.ma.count(Vmod))
+            perror = np.ma.sum(np.abs((Vx-Vmod)/Vmod)/np.ma.count(Vmod)) * 100.
+            print(rmse, perror)
+            if rmse>0:vel_ax.text(0.3, 0.2, r"RMSE: %.2f $ms^{-1}$"%rmse + "\n" + r"$\delta:%.2f$"%perror, horizontalalignment="center",
+                    verticalalignment="center", transform=vel_ax.transAxes, fontdict={"color":"red"})
 
             self._add_colorbar(fig, vel_ax, vel_ranges, vel_cmap, label="Velocity [m/s]")
             if save:
@@ -829,32 +836,44 @@ def plot_velocity_ts_beam(dn, rad, bmnum, model, start, end):
     labs = [r"$V_{d\eta}$", r"$V_{dh}$", r"$V_{T}$"]
     fname = "data/op/{dn}/{model}/sd_{rad}_data.csv.gz".format(dn=dn.strftime("%Y.%m.%d.%H.%M"), rad=rad, model=model)
     dat = utils.get_sd_data(fname, bmnum).dropna()
-    dat = dat.groupby("time").mean().reset_index()
+    mean, std = dat.groupby("time").mean().reset_index(), dat.groupby("time").std().reset_index()
     I = 0
     for ax, mkey, col, lab in zip(axs, mkeys, cols, labs):
         ax.set_ylabel(r"Velocity, $ms^{-1}$")
         ax.set_xlabel("Time, UT")
         ax.xaxis.set_major_formatter(fmt)
-        v, vmax, vmin, time = [], [], [], []
+        v, vmax, vmin, vstd, time = [], [], [], [], []
         for i, f in enumerate(fstr):
             sdat = loadmat(f)
             if mkey == "vt": 
                 v.append(np.median(sdat["vd"]+sdat["vf"]))
                 vmax.append((sdat["vd"]+sdat["vf"]).max())
                 vmin.append((sdat["vd"]+sdat["vf"]).min())
+                vstd.append(1.96*np.std(sdat["vd"]+sdat["vf"]))
             else:
                 v.append(np.median(sdat[mkey]))
                 vmax.append(sdat[mkey].max())
                 vmin.append(sdat[mkey].min())
+                vstd.append(1.96*np.std(sdat[mkey]))
             time.append(start + dt.timedelta(minutes=i))
         yerr = np.array([(mn, mx) for mn, mx in zip(vmin, vmax)]).T
-        ax.errorbar(time, v, yerr=yerr, 
+        ax.errorbar(time, v, yerr=vstd, 
             mec=col, mfc=col, fmt="r^", ms=1.5, ls="None", ecolor=col, 
             capsize=1, capthick=.4, elinewidth=0.4,
             alpha=0.5, label=lab)
         if I == 2: 
-            ax.plot(dat.time, dat.v, color="red", marker="o",
-                    alpha=0.7, ls="None", markersize=1.5, label=r"$V_{sd}^{los}$")
+            ax.errorbar(mean.time,  mean.v, yerr=std.v, mec="r", mfc="r", fmt="o",
+                    ms=1.5, ls="None", ecolor="r",
+                    capsize=1, capthick=.4, elinewidth=0.4,alpha=0.5,
+                    label=r"$V_{sd}^{los}$")
+            if len(mean.v) > 50:
+                from scipy import signal
+                vmx = signal.resample(mean.v, len(v))
+                rmse = np.sqrt(np.median((vmx - np.array(v))**2))
+                perror = np.mean(np.abs((vmx - np.array(v))/np.array(v)))
+                ax.text(0.2, 0.85, r"RMSE: %.2f $ms^{-1}$"%rmse + "\n" + r"$\delta:%.2f$"%perror, ha="center", va="center", 
+                        transform=ax.transAxes, fontdict={"color":"red", "size":8})
+                print(rmse, perror)
         ax.axhline(0, color="gray", ls="--", lw=0.6)
         ax.legend(loc=1)
         ax.set_ylim(-100, 200)
@@ -1322,6 +1341,24 @@ def plot_ray_edens(ev=dt.datetime(2015,5,5,21,51), rad="bks", time=18, maxground
                         transform=ax.transAxes)
                 aax.plot(th, r, c=raycolor, zorder=zorder, alpha=alpha, lw=0.8)
                 aax.plot(dth, dr, c="b", zorder=zorder, alpha=alpha, ls="--",lw=1.6)
+                #aax.plot(np.arange(0,2000,dx)/Re, np.ones(int(2000*1/dx))*np.max(dr), color="b", ls="--", lw=0.6, alpha=0.7)
+                #aax.plot(np.arange(0,2000,dx)/Re, np.ones(int(2000*1/dx))*np.max(r), color="r", ls="--", lw=0.6, alpha=0.7)
+                
+                axins = ax.inset_axes([0.4, -.7, 0.3, 0.5])
+                axins.plot(np.arange(0,2000,dx)/Re, np.ones(int(2000*1/dx))*np.max(dr), color="b", ls="--", lw=0.6, alpha=0.7)
+                axins.plot(np.arange(0,2000,dx)/Re, np.ones(int(2000*1/dx))*np.max(r), color="k", ls="--", lw=0.6, alpha=0.7)
+                axins.plot(th, r, c=raycolor, zorder=zorder, alpha=alpha, lw=0.8)
+                axins.plot(dth, dr, c="b", zorder=zorder, alpha=alpha, ls="--",lw=1.6)
+                axins.set_ylim(int(np.max(dr)-10), int(np.max(r)+10))
+                lenx = np.argmax(r)
+                axins.set_xlim(th[lenx-10], th[lenx+10])
+                axins.set_yticks(np.linspace(int(np.max(dr)-10), int(np.max(r)+10), 3))
+                axins.set_yticklabels((np.linspace(int(np.max(dr)-10), int(np.max(r)+10), 3)-Re).astype(int), fontdict={"size":7})
+                axins.set_xticks(np.linspace(th[lenx-10], th[lenx+5], 4))
+                axins.set_xticklabels((np.linspace(th[lenx-10], th[lenx+10], 4)*Re).astype(int), fontdict={"size":7})
+                axins.set_xlabel("Ground Range, $km$", fontdict={"size":8})
+                axins.set_ylabel("Height, $km$", fontdict={"size":8})
+                aax.indicate_inset_zoom(axins)
         else:
             th, r, f, _, _ = get_polar(pd.read_csv(f))
             dth, dr, df, _, _ = get_polar(pd.read_csv(df))
