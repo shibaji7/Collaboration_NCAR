@@ -252,3 +252,16 @@ class InterpolateData(object):
             for j in range(len(lons)):
                 param_x[i,j] = param[np.argmin(np.abs(h[:, i, j]-hd)), i, j]
         return param_x
+
+    def _intp_by_beam_(self, h, lats, lons, param, beam, hd=200, v=True):
+        param_x = np.zeros((len(lats), len(lons))) * np.nan
+        for i in range(len(lats)):
+            for j in range(len(lons)):
+                param_x[i,j] = param[np.argmin(np.abs(h[:, i, j]-hd)), i, j]
+        from scipy.io import loadmat
+        x = loadmat("data/op/2015.05.05.22.11/waccmx/bks/bm.%02d/bearing.mat"%beam)
+        xlats, xlons = x["lat"][0,:], x["lon"][0,:]
+        dat = []
+        for xlat, xlon in zip(xlats, xlons):
+            dat.append(param_x[np.argmin(np.abs(lats-xlat)), np.argmin(np.abs(lons-xlon))])
+        return np.max(dat)

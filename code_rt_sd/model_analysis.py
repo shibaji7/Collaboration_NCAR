@@ -22,7 +22,7 @@ import sys
 sys.path.append("sd/")
 import plotlib
 
-case = 2
+case = 3
 
 if case == 0:
     import pandas as pd
@@ -92,6 +92,7 @@ if case == 1:
     dastrs = [x.strftime("%Y.%m.%d.%H.%M") for x in dates]
     fig = plt.figure(figsize=(12, 12), dpi=150)
     dsb = None
+    hd = 250
     for _i, dx in enumerate(dastrs):
         if _i>0:
             idx = 220+_i
@@ -118,15 +119,15 @@ if case == 1:
                     axf.grid_on()
                     axf.enum()
                     px = intp._intrp_(dsb.variables["ZGf"][0,:,:,:]*1e-3, dsb.variables["lat"][:], dsb.variables["lon"][:],
-                                                        dsb.variables["WIf"][0,:,:,:], hd=300)
+                                                        dsb.variables["WIf"][0,:,:,:], hd=hd)
                     axf.overlay_data(dsb.variables["lat"][:], dsb.variables["lon"][:], px,
                             tx=cartopy.crs.PlateCarree(), colorbar_label="$\omega_I, ms^{-1}$")
-                    fx.savefig("data/WI.png", bbox_inches="tight")
+                    fx.savefig("data/WI%d.png"%hd, bbox_inches="tight")
                     plt.close()
                 if _i>0:
                     intp = InterpolateData()
                     px = intp._intrp_(ds.variables["ZGf"][0,:,:,:]*1e-3, ds.variables["lat"][:], ds.variables["lon"][:],
-                            ds.variables["WIf"][0,:,:,:]-dsb.variables["WIf"][0,:,:,:], hd=300)
+                            ds.variables["WIf"][0,:,:,:]-dsb.variables["WIf"][0,:,:,:], hd=hd)
                     if _i==4:
                         ax.overlay_data(ds.variables["lat"][:], ds.variables["lon"][:], px,
                         tx=cartopy.crs.PlateCarree(), p_max=4, p_min=-4, p_step=0.5, p_ub=8, p_lb=-8,
@@ -137,8 +138,50 @@ if case == 1:
                                cmap=matplotlib.pyplot.get_cmap("Spectral"), add_colorbar=False, colorbar_label="Velocity [m/s]")
                 os.system("rm {f}".format(f=f.replace(".gz", "")))
                 break
-    fig.savefig("data/wi.png", bbox_inches="tight")
+    fig.savefig("data/dwi%d.png"%hd, bbox_inches="tight")
 if case==2:
     plotlib.plot_ray_edens()
     plotlib.plot_ray_edens(time=12, diff=True)
     plotlib.plot_ray_edens(time=9, diff=False)
+if case ==3:
+    ## Source activate aacgm_carto
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import sys
+
+    import datetime as dt
+    from netCDF4 import Dataset
+    from utils import InterpolateData
+    fglob = "data/op/2015.05.05.22.11/waccmx/*.gz"
+    files = glob.glob(fglob)
+    files.sort()
+
+    dates = [dt.datetime(2015,5,5,22), dt.datetime(2015,5,5,22,8), dt.datetime(2015,5,5,22,9), dt.datetime(2015,5,5,22,10), dt.datetime(2015,5,5,22,11)]
+    dastrs = [x.strftime("%Y.%m.%d.%H.%M") for x in dates]
+    dsb = None
+    hd, dat = 250, []
+    fig = plt.figure(figsize=(3,3), dpi=150)
+    ax = fig.add_subplot(111)
+    ax.set_ylabel(r"Velocity ($V_{dh}$), $ms^{-1}$")
+    ax.set_xlabel(r"$\Delta \omega_I$, $ms^{-1}$")
+    for _i, dx in enumerate(dastrs):
+        for f in files:
+            if dx in f:
+                os.system("cp {f} .".format(f=f))
+                f = f.split("/")[-1]
+                os.system("gzip -d {f}".format(f=f))
+                ds = Dataset(f.replace(".gz", ""))
+                if dsb is None: dsb = ds
+                if _i>0:
+                    intp = InterpolateData()
+                    for beam in range(24):
+                        print("Beam:", beam)
+                        #dat.append(intp._intp_by_beam_(ds.variables["ZGf"][0,:,:,:]*1e-3, ds.variables["lat"][:], ds.variables["lon"][:],
+                        #        ds.variables["WIf"][0,:,:,:]-dsb.variables["WIf"][0,:,:,:], beam, hd=hd))
+                os.system("rm {f}".format(f=f.replace(".gz", "")))
+                break
+        if _i==1: break
+    print(dat)
+    fig.savefig("data/crr_%d.png"%hd, bbox_inches="tight")
+

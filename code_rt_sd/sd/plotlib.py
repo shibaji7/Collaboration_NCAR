@@ -760,7 +760,7 @@ class FanPlot(object):
             rmse = np.sqrt(np.ma.sum((Vx-Vmod)**2)/np.ma.count(Vmod))
             perror = np.ma.sum(np.abs((Vx-Vmod)/Vmod)/np.ma.count(Vmod)) * 100.
             print(rmse, perror)
-            if rmse>0:vel_ax.text(0.3, 0.2, r"RMSE: %.2f $ms^{-1}$"%rmse + "\n" + r"$\delta:%.2f$"%perror, horizontalalignment="center",
+            if rmse>0:vel_ax.text(0.3, 0.2, r"RMSE: %.2f $ms^{-1}$"%rmse + "\n" + r"$\delta: %.2f$"%perror + "%", horizontalalignment="center",
                     verticalalignment="center", transform=vel_ax.transAxes, fontdict={"color":"red"})
 
             self._add_colorbar(fig, vel_ax, vel_ranges, vel_cmap, label="Velocity [m/s]")
@@ -871,7 +871,7 @@ def plot_velocity_ts_beam(dn, rad, bmnum, model, start, end):
                 vmx = signal.resample(mean.v, len(v))
                 rmse = np.sqrt(np.median((vmx - np.array(v))**2))
                 perror = np.mean(np.abs((vmx - np.array(v))/np.array(v)))
-                ax.text(0.2, 0.85, r"RMSE: %.2f $ms^{-1}$"%rmse + "\n" + r"$\delta:%.2f$"%perror, ha="center", va="center", 
+                ax.text(0.2, 0.85, r"RMSE: %.2f $ms^{-1}$"%rmse + "\n" + r"$\delta: %.2f$"%perror+"%", ha="center", va="center", 
                         transform=ax.transAxes, fontdict={"color":"red", "size":8})
                 print(rmse, perror)
         ax.axhline(0, color="gray", ls="--", lw=0.6)
