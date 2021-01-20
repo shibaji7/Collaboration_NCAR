@@ -65,7 +65,7 @@ if __name__ == "__main__":
         ix = 0
         for d, r in zip(events.date.tolist(), events.rad.tolist()):
             print("Events - ", r, d)
-            if ix >= 0: 
+            if ix >= 1: 
                 freq = get_freq(d, r)
                 for bm in range(24):
                     dic = "../data/op/{dn}/waccmx/{r}/bm.{bm}/".format(r=r,bm="%02d"%bm,dn=d.strftime("%Y.%m.%d.%H.%M"))
@@ -76,19 +76,21 @@ if __name__ == "__main__":
                             else: fname = dic + "ti(%02d)_elv(%.1f)_f.csv"%(i,elv)
                             files = glob.glob(fname)
                             for f in files:
-                                T = True
-                                ff = pd.read_csv(f)
-                                vd = np.abs(get_vdeta(ff, d_reg, freq))
-                                ve = np.abs(get_vdeta(ff, e_reg, freq))
-                                vf = np.abs(get_vdeta(ff, f_reg, freq))
-                                bf = pd.read_csv(f.replace("_f.","_d."))
-                                vfh = np.abs(_estimate_dop_delh_(ff,bf,freq))
-                                vD.append(vd)
-                                vE.append(ve)
-                                vF.append(vf)
-                                vFh.append(vfh)
-                                vT.append(vd+ve+vf+vfh)
-            if t and T: break
+                                try:
+                                    T = False
+                                    ff = pd.read_csv(f)
+                                    vd = np.abs(get_vdeta(ff, d_reg, freq))
+                                    ve = np.abs(get_vdeta(ff, e_reg, freq))
+                                    vf = np.abs(get_vdeta(ff, f_reg, freq))
+                                    bf = pd.read_csv(f.replace("_f.","_d."))
+                                    vfh = np.abs(_estimate_dop_delh_(ff,bf,freq))
+                                    vD.append(vd)
+                                    vE.append(ve)
+                                    vF.append(vf)
+                                    vFh.append(vfh)
+                                    vT.append(vd+ve+vf+vfh)
+                                except: pass
+            #if t and T: break
             ix += 1
         x = pd.DataFrame()
         x["vD"], x["vE"], x["vF"], x["vFh"], x["vT"] = vD, vE, vF, vFh, vT
