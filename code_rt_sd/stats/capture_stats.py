@@ -25,7 +25,7 @@ import glob
 from scipy.integrate import trapz
 from scipy import signal
 
-#import plotlib
+import plotlib
 
 INT_F = 300
 def get_freq(dn, rad):
@@ -50,26 +50,35 @@ def _estimate_dop_delh_(x, y, freq, phi=0):
     xd = 0.5 * xf * 3e8 / (freq * 1e6)
     return xd
 
-sim_fname = "finescale_simulate_total.csv"
+sim_fname = "finescale_simulate_total_{kind}.csv"
 t, T = True, True
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", action="store_false", help="Increase output verbosity (default True)")
     parser.add_argument("-pl", "--plot", action="store_true", help="Analyze sensitivity (default False)")
+    parser.add_argument("-t", "--type", default="A", help="Flare type (A/X/M)")
+    parser.add_argument("-n", "--number", default=-1, type=int, help="Number of radar event")
     d_reg, e_reg, f_reg = [60,90], [100,130], [140,300]
     args = parser.parse_args()
     model = "waccmx"
     vD, vE, vF, vFh, vT = [], [], [], [], []
+    events = pd.read_csv("op/radar_event_list.csv", parse_dates=["date"])
+    T, kind = 1, "A"
+    if args.type == "M" or args.type == "X":
+        events = events[events.type.str.contains(args.type)]
+        T, kind = 0, args.type
+    if args.number >= 0:
+        events = events.iloc[[args.number]]
+        T, kind = 0, events.rad.tolist()[0] + "_" + events.date.tolist()[0].strftime("%Y-%m-%d-%H-%M")
     if not args.plot: 
-        events = pd.read_csv("../config/radar_event_list.csv", parse_dates=["date"])
         ix = 0
         for d, r in zip(events.date.tolist(), events.rad.tolist()):
             print("Events - ", r, d)
-            if ix >= 1: 
+            if ix >= T: 
                 freq = get_freq(d, r)
                 for bm in range(24):
                     dic = "../data/op/{dn}/waccmx/{r}/bm.{bm}/".format(r=r,bm="%02d"%bm,dn=d.strftime("%Y.%m.%d.%H.%M"))
-                    for i in range(18,21):
+                    for i in range(18,19):
                         i_start, i_end = 16, 30
                         for elv in np.linspace(i_start, i_end, (i_end-i_start)*2 + 1):
                             if elv.is_integer(): fname = dic + "ti(%02d)_elv(%d)_f.csv"%(i,elv)
@@ -95,17 +104,13 @@ if __name__ == "__main__":
         x = pd.DataFrame()
         x["vD"], x["vE"], x["vF"], x["vFh"], x["vT"] = vD, vE, vF, vFh, vT
         x = x.round(3)
-        x = x[(np.abs(x.vT)>30) & (np.abs(x.vT)<300)]
-        x.to_csv("op/" + sim_fname, index=False)
+        x.to_csv("op/" + sim_fname.format(kind=kind), index=False)
     else: 
-        x = pd.read_csv("op/"+sim_fname)
+        x = pd.read_csv("op/"+sim_fname.format(kind=kind))
         x = x[(np.abs(x.vT)>30) & (np.abs(x.vT)<300)]
         vd, ve, vf = np.array(x.vD/x.vT), np.array(x.vE/x.vT), np.array((x.vF + x.vFh)/x.vT)
-        vd = vd[vd>.1]
-        #plotlib.plot_region_distribution(vd, ve, vf)
-        #vdn, vdh = np.array((x.vD + x.vE + x.vF)/x.vT), np.array(x.vFh/x.vT)
-        #plotlib.plot_distribution(vdn, vdh)
-        #plotlib.plot_htstogram(vd, ve, vf, vdn, vdh)
-    if os.path.exists("../sd/__pycache__/"):
-        os.system("rm -rf ../sd/__pycache__/")
+        vdn, vdh = np.array((x.vD + x.vE + x.vF)/x.vT), np.array(x.vFh/x.vT)
+        plotlib.plot_htstogram(vd, ve, vf, vdn, vdh, kind)
+    if os.path.exists("__pycache__/"):
+        os.system("rm -rf __pycache__/")
         os.system("rm -rf py*.log")

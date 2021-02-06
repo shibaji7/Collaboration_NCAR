@@ -22,7 +22,7 @@ import sys
 sys.path.append("sd/")
 import plotlib
 
-case = 3
+case = 1
 
 if case == 0:
     import pandas as pd
@@ -118,16 +118,17 @@ if case == 1:
                     axf.overlay_fov()
                     axf.grid_on()
                     axf.enum()
-                    px = intp._intrp_(dsb.variables["ZGf"][0,:,:,:]*1e-3, dsb.variables["lat"][:], dsb.variables["lon"][:],
+                    pxb = intp._intrp_(dsb.variables["ZGf"][0,:,:,:]*1e-3, dsb.variables["lat"][:], dsb.variables["lon"][:],
                                                         dsb.variables["WIf"][0,:,:,:], hd=hd)
-                    axf.overlay_data(dsb.variables["lat"][:], dsb.variables["lon"][:], px,
+                    axf.overlay_data(dsb.variables["lat"][:], dsb.variables["lon"][:], pxb,
                             tx=cartopy.crs.PlateCarree(), colorbar_label="$\omega_I, ms^{-1}$")
                     fx.savefig("data/WI%d.png"%hd, bbox_inches="tight")
                     plt.close()
                 if _i>0:
                     intp = InterpolateData()
                     px = intp._intrp_(ds.variables["ZGf"][0,:,:,:]*1e-3, ds.variables["lat"][:], ds.variables["lon"][:],
-                            ds.variables["WIf"][0,:,:,:]-dsb.variables["WIf"][0,:,:,:], hd=hd)
+                            ds.variables["WIf"][0,:,:,:], hd=hd)
+                    px = px-pxb
                     if _i==4:
                         ax.overlay_data(ds.variables["lat"][:], ds.variables["lon"][:], px,
                         tx=cartopy.crs.PlateCarree(), p_max=4, p_min=-4, p_step=0.5, p_ub=8, p_lb=-8,
