@@ -24,8 +24,17 @@ import time
 import glob
 from scipy.integrate import trapz
 from scipy import signal
+from scipy.io import loadmat
 
+from pysolar.solar import get_altitude
 import plotlib
+
+def calculate_sza(d, lats, lons, alt=300):
+    d = d.replace(tzinfo=dt.timezone.utc)
+    szas = []
+    for la, lo in zip(lats, lons):
+        szas.append(90. - get_altitude(la, lo, d))
+    return szas
 
 INT_F = 300
 def get_freq(dn, rad):
@@ -61,7 +70,7 @@ if __name__ == "__main__":
     d_reg, e_reg, f_reg = [60,90], [100,130], [140,300]
     args = parser.parse_args()
     model = "waccmx"
-    vD, vE, vF, vFh, vT = [], [], [], [], []
+    vD, vE, vF, vFh, vT, SZA = [], [], [], [], [], []
     events = pd.read_csv("op/radar_event_list.csv", parse_dates=["date"])
     T, kind = 1, "A"
     if args.type == "M" or args.type == "X":
@@ -77,6 +86,10 @@ if __name__ == "__main__":
             if ix >= T: 
                 freq = get_freq(d, r)
                 for bm in range(24):
+                    bearing_file = "../data/op/%s/waccmx/bks/bm.%02d/bearing.mat"%(d.strftime("%Y.%m.%d.%H.%M"), bm)
+                    obj = loadmat(bearing_file)
+                    lat, lon = obj["lat"], obj["lon"]
+                    sza = np.mean(calculate_sza(d, lat, lon))
                     dic = "../data/op/{dn}/waccmx/{r}/bm.{bm}/".format(r=r,bm="%02d"%bm,dn=d.strftime("%Y.%m.%d.%H.%M"))
                     for i in range(18,19):
                         i_start, i_end = 16, 30
@@ -98,11 +111,12 @@ if __name__ == "__main__":
                                     vF.append(vf)
                                     vFh.append(vfh)
                                     vT.append(vd+ve+vf+vfh)
+                                    SZA.append(sza)
                                 except: pass
             #if t and T: break
             ix += 1
         x = pd.DataFrame()
-        x["vD"], x["vE"], x["vF"], x["vFh"], x["vT"] = vD, vE, vF, vFh, vT
+        x["vD"], x["vE"], x["vF"], x["vFh"], x["vT"], x["sza"] = vD, vE, vF, vFh, vT, SZA
         x = x.round(3)
         x.to_csv("op/" + sim_fname.format(kind=kind), index=False)
     else: 

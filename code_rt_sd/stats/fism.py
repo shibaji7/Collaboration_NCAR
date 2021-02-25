@@ -78,18 +78,31 @@ def compare_FISM_spect_by_dn(dns):
     ax.set_ylabel(r"Intensity ($\Phi_0$), $Wm^{-2}nm^{-1}$")
     colors = ["darkred", "darkblue"]
     lws = [1.2, .8]
+    bins = np.arange(0.05,190.05,0.1)
     for z,dn in enumerate(dns):
         fname = "op/tmpfism.csv"
-        uri = "https://lasp.colorado.edu/lisird/latis/dap/fism_flare_hr.csv?&"+\
-                "wavelength>=0.01&wavelength<=190&time~{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:00.000Z".format(dn.year,
-                        dn.month, dn.day, dn.hour, dn.minute)
-        resp = requests.get(uri)
-        with open(fname, "w") as f: f.write(resp.text)
-        data = pd.read_csv(fname)
-        ax.loglog(data["wavelength (nm)"], data["irradiance (W/m^2/nm)"], color=colors[z], alpha=0.8, lw=lws[z], 
+        start, end = dn - dt.timedelta(minutes=1), dn + dt.timedelta(minutes=1)
+        spec = []
+        for b in bins:
+            uri = "https://lasp.colorado.edu/lisird/latis/dap/fism_flare_hr.csv?&"+\
+                    "time>={:d}-{:02d}-{:02d}T{:02d}:{:02d}:00.000Z&time<={:d}-{:02d}-{:02d}T{:02d}:{:02d}:00.000Z&".format(start.year,
+                            start.month, start.day, start.hour, start.minute, end.year,
+                            end.month, end.day, end.hour, end.minute)+\
+                                    "wavelength~{:.02f}".format(b)
+            resp = requests.get(uri)
+            print(uri)
+            with open(fname, "w") as f: f.write(resp.text)
+            data = pd.read_csv(fname)
+            data["time"] = [dt.datetime(1970,1,1)+dt.timedelta(seconds=x) for x in data["time (seconds since 1970-01-01)"]]
+            spec.append(data["irradiance (W/m^2/nm)"].tolist()[1])
+            os.remove(fname)
+        ax.loglog(bins, spec, color=colors[z], alpha=0.8, lw=lws[z], 
                 label=dn.strftime("%Y-%m-%d %H:%M UT"))
-        ax.set_xlim(0.05,200)
-        os.remove(fname)
+        ax.set_xlim(bins[0], bins[-1])
+        if z==0: 
+            ax.axhline(2.2e-4,color="k",ls="--")
+            ax.axvline(0.1,color="k",ls="--")
+            ax.axvline(0.8,color="k",ls="--")
     ax.legend(loc=2)
     fig.savefig("op/compare_FISM_spect.png", bbox_inches="tight")
     return
@@ -139,10 +152,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-ev", "--event", default=dt.datetime(2015,5,5,22,11), nargs="+", help="Start date", type=dparser.isoparse)
     parser.add_argument("-b", "--bins", type=int, default=10, help="Wavebins in nm")
-    parser.add_argument("-c", "--code", default="hist")
+    parser.add_argument("-c", "--code", default="")
     args = parser.parse_args()
-    args.event = [dt.datetime(2014,6,10,11,42), dt.datetime(2015,3,11,16,22)]
-    args.bins = [10, 30]
+    args.event = [dt.datetime(2014,6,10,11,42), dt.datetime(2015,3,11,16,20)]
+    args.bins = [10,30]
     print("\n Parameter list for simulation ")
     for k in vars(args).keys():
         print("     " , k , "->" , str(vars(args)[k]))
