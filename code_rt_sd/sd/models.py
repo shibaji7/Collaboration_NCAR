@@ -157,7 +157,8 @@ class Model(object):
         fname = self.files["run"] + "bearing.mat"
         m = {}
         lat, lon, bearing = utils.get_sd_radar(self.rad)
-        bearing = (self.bmnum - 12)*3.24
+        # T0DO
+        bearing += (self.bmnum - 12)*3.24
         p = (lat, lon)
         self.rlat, self.rlon = lat, lon
         gc = GC(p, p)

@@ -64,8 +64,52 @@ def compare_TS_by_bin(dns, bins):
     fig.savefig("op/compare_TS_by_bin.png", bbox_inches="tight")
     return
 
+def compare_FISM_diff_spect_by_dn(dns, _f107):
+    """
+    Compare FISM spectrum for several dates
+    paraeters:
+    ----------
+    dns <List[datetime]>: List of datetime of the events
+    """
+    fig = plt.figure(figsize=(6,4), dpi=120)
+    ax = fig.add_subplot(111)
+    ax.set_xlabel(r"Waveband ($\lambda$), nm")
+    ax.set_ylabel(r"Intensity ($\Phi_0$), $Wm^{-2}nm^{-1}$")
+    colors = ["darkred", "darkblue"]
+    lws = [1.2, .8]
+    bins = np.arange(0.05,190.05,0.1)
+    for z,dn in enumerate(dns):
+        fname = "op/tmpfism.csv"
+        spec = {}
+        for ix, dly in enumerate([20,0]):
+            spec[ix] = []
+            start, end = dn - dt.timedelta(minutes=1+dly), dn + dt.timedelta(minutes=1+dly)
+            for b in bins:
+                uri = "https://lasp.colorado.edu/lisird/latis/dap/fism_flare_hr.csv?&"+\
+                        "time>={:d}-{:02d}-{:02d}T{:02d}:{:02d}:00.000Z&time<={:d}-{:02d}-{:02d}T{:02d}:{:02d}:00.000Z&".format(start.year,
+                                start.month, start.day, start.hour, start.minute, end.year,
+                                end.month, end.day, end.hour, end.minute)+\
+                                        "wavelength~{:.02f}".format(b)
+                resp = requests.get(uri)
+                print(uri)
+                with open(fname, "w") as f: f.write(resp.text)
+                data = pd.read_csv(fname)
+                data["time"] = [dt.datetime(1970,1,1)+dt.timedelta(seconds=x) for x in data["time (seconds since 1970-01-01)"]]
+                spec[ix].append(data["irradiance (W/m^2/nm)"].tolist()[1])
+                os.remove(fname)
+        spec = np.array(spec[1]) - np.array(spec[0])
+        ax.loglog(bins, spec, color=colors[z], alpha=0.8, lw=lws[z], 
+                label=dn.strftime("%Y-%m-%d %H:%M UT, F107=") + "%.1f"%_f107[z])
+        ax.set_xlim(bins[0], bins[-1])
+        if z==0: 
+            ax.axhline(2.2e-4,color="k",ls="--")
+            ax.axvline(0.1,color="k",ls="--")
+            ax.axvline(0.8,color="k",ls="--")
+    ax.legend(loc=3)
+    fig.savefig("op/compare_FISM_diff_spect.png", bbox_inches="tight")
+    return
 
-def compare_FISM_spect_by_dn(dns):
+def compare_FISM_spect_by_dn(dns, _f107):
     """
     Compare FISM spectrum for several dates
     paraeters:
@@ -97,7 +141,7 @@ def compare_FISM_spect_by_dn(dns):
             spec.append(data["irradiance (W/m^2/nm)"].tolist()[1])
             os.remove(fname)
         ax.loglog(bins, spec, color=colors[z], alpha=0.8, lw=lws[z], 
-                label=dn.strftime("%Y-%m-%d %H:%M UT"))
+                label=dn.strftime("%Y-%m-%d %H:%M UT, F107=") + "%.1f"%_f107[z])
         ax.set_xlim(bins[0], bins[-1])
         if z==0: 
             ax.axhline(2.2e-4,color="k",ls="--")
@@ -159,9 +203,16 @@ if __name__ == "__main__":
     print("\n Parameter list for simulation ")
     for k in vars(args).keys():
         print("     " , k , "->" , str(vars(args)[k]))
+    f107 = pd.read_csv("data.csv")
+    #f107.time = [dt.datetime.strptime(x, "%Y%m%d") for x in f107.time]
+    _f107 = []
+    for d in args.event:
+        d = int(d.strftime("%Y%m%d"))
+        _f107.append(f107[f107.time==d]["f107"].tolist()[0])
     if args.code == "hist":
         disk_limb_histograms(args.event)
     else:
-        compare_FISM_spect_by_dn(args.event)
-        compare_TS_by_bin(args.event, args.bins)
+        #compare_FISM_spect_by_dn(args.event, _f107)
+        compare_FISM_diff_spect_by_dn(args.event, _f107)
+        #compare_TS_by_bin(args.event, args.bins)
     pass

@@ -86,7 +86,8 @@ if __name__ == "__main__":
             if ix >= T: 
                 freq = get_freq(d, r)
                 for bm in range(24):
-                    bearing_file = "../data/op/%s/waccmx/bks/bm.%02d/bearing.mat"%(d.strftime("%Y.%m.%d.%H.%M"), bm)
+                    bearing_file = "../data/op/%s/waccmx/%s/bm.%02d/bearing.mat"%(d.strftime("%Y.%m.%d.%H.%M"), r, bm)
+                    print(bearing_file)
                     obj = loadmat(bearing_file)
                     lat, lon = obj["lat"], obj["lon"]
                     sza = np.mean(calculate_sza(d, lat, lon))
