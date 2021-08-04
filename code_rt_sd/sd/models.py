@@ -304,7 +304,7 @@ class Base(object):
         """ Create Conn """
         self.ssh = SSHClient()
         self.ssh.load_system_host_keys()
-        self.ssh.connect(hostname="cheyenne.ucar.edu", port = 22, username="shibaji", password="0514-shibaji-cit")
+        self.ssh.connect(hostname="cheyenne.ucar.edu", port = 22, username="shibaji", password="0515-shibaji-cit")
         self.scp = SCPClient(self.ssh.get_transport())
         self.con = True
         return
@@ -420,7 +420,7 @@ class Base(object):
             for i in range(self.tsim_start, self.tsim_end):
                 self._download_(i)
             self._close_()
-            self._run_bmnum_()
+            #self._run_bmnum_()
         return
 
 class WACCM(Base):

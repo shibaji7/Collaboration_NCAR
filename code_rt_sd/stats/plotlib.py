@@ -43,6 +43,69 @@ def plot_distribution(vn, vf):
     fig.savefig("op/hist.png", bbox_inches="tight")
     return
 
+
+def plot_mastogram(vd, ve, vf, vdn, vdh, vd0, ve0, vf0, vdn0, vdh0):
+    fig, axes = plt.subplots(figsize=(6,6), dpi=150, sharex="all", sharey="all", nrows=2, ncols=2)
+    bins = np.arange(0,1,.05)
+    ax = axes[0,0]
+    ax.hist(vdn, bins=bins, color="r", alpha=0.5, density=True, label=r"$\frac{V_{d\eta}}{V_T}[\mu=%.2f]$"%np.mean(vdn), histtype="step")
+    ax.hist(vdh, bins=bins, color="b", alpha=0.5, density=True, label=r"$\frac{V_{dh}}{V_T}[\mu=%.2f]$"%np.mean(vdh), histtype="step")
+    ax.axvline(np.mean(vdh), ls="--", color="b", lw=0.6)
+    ax.axvline(np.mean(vdn), ls="--", color="r", lw=0.6)
+    ax.set_xlim(0,1)
+    ax.set_ylim(0,20)
+    ax.legend(loc=1, prop={"size": 10})
+    #ax.set_ylabel(r"Density $\left(\frac{V_x}{V_T}\right)$")
+    #ax.set_xlabel(r"$\frac{V_x}{V_T}$")
+    ax.text(0.1,0.9, "(a)", horizontalalignment="center", verticalalignment="center", transform=ax.transAxes)
+    
+    #ax = fig.add_subplot(222)
+    ax = axes[0,1]
+    ax.hist(vd, bins=bins, color="r", alpha=0.5, density=True, label=r"$\frac{V_D}{V_T}[\mu=%.2f]$"%np.mean(vd), histtype="step")
+    ax.hist(ve, bins=bins, color="g", alpha=0.5, density=True, label=r"$\frac{V_D}{V_T}[\mu=%.2f]$"%np.mean(ve), histtype="step")
+    ax.hist(vf, bins=bins, color="b", alpha=0.5, density=True, label=r"$\frac{V_D}{V_T}[\mu=%.2f]$"%np.mean(vf), histtype="step")
+    ax.axvline(np.mean(vd), ls="--", color="r", lw=0.6)
+    ax.axvline(np.mean(ve), ls="--", color="g", lw=0.6)
+    ax.axvline(np.mean(vf), ls="--", color="b", lw=0.6)
+    ax.set_xlim(0,1)
+    ax.set_ylim(0,20)
+    ax.legend(loc=1, prop={"size": 10})
+    #ax.set_ylabel(r"Density $\left(\frac{V_x}{V_T}\right)$")
+    #ax.set_xlabel(r"$\frac{V_x}{V_T}$")
+    ax.text(0.1,0.9, "(b)", horizontalalignment="center", verticalalignment="center", transform=ax.transAxes)
+    
+    #ax = fig.add_subplot(223)
+    ax = axes[1,0]
+    ax.hist(vdn0, bins=bins, color="r", alpha=0.5, density=True, label=r"$\frac{V_{d\eta}}{V_T}[\mu=%.2f]$"%np.mean(vdn0), histtype="step")
+    ax.hist(vdh0, bins=bins, color="b", alpha=0.5, density=True, label=r"$\frac{V_{dh}}{V_T}[\mu=%.2f]$"%np.mean(vdh0), histtype="step")
+    ax.axvline(np.mean(vdh0), ls="--", color="b", lw=0.6)
+    ax.axvline(np.mean(vdn0), ls="--", color="r", lw=0.6)
+    ax.set_xlim(0,1)
+    ax.set_ylim(0,20)
+    ax.legend(loc=1, prop={"size": 10})
+    ax.set_ylabel(r"Density $\left(\frac{V_x}{V_T}\right)$")
+    ax.set_xlabel(r"$\frac{V_x}{V_T}$")
+    ax.text(0.1,0.9, "(c)", horizontalalignment="center", verticalalignment="center", transform=ax.transAxes)
+    
+    #ax = fig.add_subplot(224)
+    ax = axes[1,1]
+    ax.hist(vd0, bins=bins, color="r", alpha=0.5, density=True, label=r"$\frac{V_D}{V_T}[\mu=%.2f]$"%np.mean(vd0), histtype="step")
+    ax.hist(ve0, bins=bins, color="g", alpha=0.5, density=True, label=r"$\frac{V_D}{V_T}[\mu=%.2f]$"%np.mean(ve0), histtype="step")
+    ax.hist(vf0, bins=bins, color="b", alpha=0.5, density=True, label=r"$\frac{V_D}{V_T}[\mu=%.2f]$"%np.mean(vf0), histtype="step")
+    ax.axvline(np.mean(vd0), ls="--", color="r", lw=0.6)
+    ax.axvline(np.mean(ve0), ls="--", color="g", lw=0.6)
+    ax.axvline(np.mean(vf0), ls="--", color="b", lw=0.6)
+    ax.set_xlim(0,1)
+    ax.set_ylim(0,20)
+    ax.legend(loc=1, prop={"size": 10})
+    #ax.set_ylabel(r"Density $\left(\frac{V_x}{V_T}\right)$")
+    #ax.set_xlabel(r"$\frac{V_x}{V_T}$")
+    ax.text(0.1,0.9, "(d)", horizontalalignment="center", verticalalignment="center", transform=ax.transAxes)
+
+    fig.subplots_adjust(wspace=0.2, hspace=0.2)
+    fig.savefig("op/mastogram.png", bbox_inches="tight")
+    return
+
 def plot_htstogram(vd, ve, vf, vn, vh, type):
     from scipy.stats import beta
     fig = plt.figure(figsize=(6,3), dpi=120)

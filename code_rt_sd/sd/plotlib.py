@@ -39,15 +39,18 @@ sys.path.append("sd_cartopy/")
 import rad_fov
 from fov import *
 
-from PyIF import te_compute as te
-from sklearn.feature_selection import mutual_info_regression as MIR
-from SALib.sample import saltelli
-from SALib.analyze import sobol
-from SALib.analyze import rbd_fast
+#from PyIF import te_compute as te
+#from sklearn.feature_selection import mutual_info_regression as MIR
+#from SALib.sample import saltelli
+#from SALib.analyze import sobol
+#from SALib.analyze import rbd_fast
 
 import itertools
 from math import pi
 from matplotlib.legend_handler import HandlerPatch
+
+font = {'size'   : 8}
+matplotlib.rc('font', **font)
 class HandlerCircle(HandlerPatch):
     def create_artists(self, legend, orig_handle,
             xdescent, ydescent, width, height, fontsize, trans):
@@ -132,8 +135,8 @@ def addColorbar(mappable, ax):
     # axes for colorbar
     cbax = Axes(fig1, divider.get_position())
     h = [Size.AxesX(ax), # main axes
-            Size.Fixed(0.1), # padding
-            Size.Fixed(0.2)] # colorbar
+            Size.Fixed(0.05), # padding
+            Size.Fixed(0.1)] # colorbar
     v = [Size.AxesY(ax)]
     _ = divider.set_horizontal(h)
     _ = divider.set_vertical(v)
@@ -144,7 +147,7 @@ def addColorbar(mappable, ax):
     _ = cbax.axis["top"].toggle(all=False)
     _ = cbax.axis["bottom"].toggle(all=False)
     _ = cbax.axis["right"].toggle(ticklabels=True, label=True)
-    _ = plt.colorbar(mappable, cax=cbax, shrink=0.7)
+    _ = plt.colorbar(mappable, cax=cbax, shrink=0.1)
     return cbax
 
 
@@ -197,11 +200,12 @@ def curvedEarthAxes(rect=111, fig=None, minground=0., maxground=2000, minalt=0,
     grid_helper = floating_axes.GridHelperCurveLinear(tr, extremes=(0, angran, Re+minalt, Re+maxalt),
             grid_locator1=grid_locator1, grid_locator2=grid_locator2, tick_formatter1=tick_formatter1,
             tick_formatter2=tick_formatter2,)
-    if not fig: fig = plt.figure(figsize=(10,6), dpi=150)
+    if not fig: fig = plt.figure(figsize=(5,3), dpi=240)
     ax1 = floating_axes.FloatingSubplot(fig, rect, grid_helper=grid_helper)
     # adjust axis
-    ax1.axis["left"].label.set_text(r"Height, $km$")
-    ax1.axis["bottom"].label.set_text(r"Ground Range, $km$")
+    print("adjust ax")
+    ax1.set_ylabel(r"Height, $km$", fontdict={"size":2})
+    ax1.set_xlabel(r"Ground Range, $km$", fontdict={"size":2})
     ax1.invert_xaxis()
     ax1.minground = minground
     ax1.maxground = maxground
@@ -529,7 +533,7 @@ def plot_region_distribution(vd, ve, vf):
 
 def plot_distribution(vn, vf):
     from scipy import stats
-    fig = plt.figure(figsize=(4,4), dpi=120)
+    fig = plt3figure(figsize=(4,4), dpi=120)
     ax = fig.add_subplot(111)
     ax.hist(vn, bins=np.arange(0,1,.01), color="r", alpha=0.5, density=True, label=r"$\frac{V_{d\eta}}{V_T}$", histtype="step")
     ax.hist(vf, bins=np.arange(0,1,.01), color="b", alpha=0.5, density=True, label=r"$\frac{V_{dh}}{V_T}$", histtype="step")
@@ -542,7 +546,7 @@ def plot_distribution(vn, vf):
 
 def plot_htstogram(vd, ve, vf, vn, vh):
     from scipy.stats import beta
-    fig = plt.figure(figsize=(6,3), dpi=120)
+    fig = plt.figure(figsize=(6,3), dpi=150)
     ax = fig.add_subplot(121)
     #x = np.arange(0,1,0.001)
     #a, b, _, _ = beta.fit(vn,floc=0,fscale=1)
@@ -717,14 +721,14 @@ class FanPlot(object):
         for i in scans:
             scan_time = start + dt.timedelta(minutes=i)
             fig = plt.figure(figsize=(10, 5), dpi=150)
-            dat_ax = fig.add_subplot(121, projection="fovcarto",coords="geo", plot_date=scan_time)
+            dat_ax = fig.add_subplot(121, projection="fovcarto",coords="geo", rad=rad, plot_date=scan_time)
             dat_ax.coastlines()
             dat_ax.overlay_radar()
             dat_ax.overlay_fov(beamLimits=[7,8], lineColor="darkred", lineWidth=0.5, ls="--")
             dat_ax.overlay_fov()
             dat_ax.grid_on()
-            dat_ax.enum()
-            vel_ax = fig.add_subplot(122, projection="fovcarto",coords="geo", plot_date=scan_time) 
+            dat_ax.enum(bounds=[(int(np.min(lons)/10)-1)*10, (int(np.max(lons)/10)+1)*10, 25, 70])
+            vel_ax = fig.add_subplot(122, projection="fovcarto",coords="geo", rad=rad, plot_date=scan_time) 
             vel_ax.coastlines()
             vel_ax.overlay_radar()
             vel_ax.overlay_fov(beamLimits=[7,8], lineColor="darkred", lineWidth=0.5, ls="--")
@@ -757,6 +761,8 @@ class FanPlot(object):
                     vmax=vel_max, vmin=-vel_max)
             vel_ax.text(1.02, 0.15, "Observations", horizontalalignment="center",
                     verticalalignment="center", transform=vel_ax.transAxes, fontdict={"color":"red"}, rotation=90)
+            vel_ax.enum(bounds=[(int(np.min(lons)/10)-1)*10, (int(np.max(lons)/10)+1)*10, 25, 70])
+            vel_ax = fig.add_subplot(122, projection="fovcarto",coords="geo", rad=rad, plot_date=scan_time) 
             rmse = np.sqrt(np.ma.sum((Vx-Vmod)**2)/np.ma.count(Vmod))
             perror = np.ma.sum(np.abs((Vx-Vmod)/Vmod)/np.ma.count(Vmod)) * 100.
             print(rmse, perror)
@@ -1284,7 +1290,7 @@ def plot_ssi_versus_bins(irr, wavelength, ylim=[50,350]):
 
 
 def plot_ray_edens(ev=dt.datetime(2015,5,5,21,51), rad="bks", time=18, maxground=1500, maxalt=300, step=1,
-        showrefract=True, nr_cmap="RdYlBu", nr_lim=[-0.5, 0.5],
+        showrefract=True, nr_cmap="jet_r", nr_lim=[-0.5, 0.5],
         raycolor="0.3", title=True, zorder=2, alpha=1,
         fig=None, rect=111, ax=None, aax=None, freq=12., diff=True):
     ax, aax = curvedEarthAxes(fig=fig, rect=rect, maxground=maxground, maxalt=maxalt, nyticks=3)
@@ -1294,6 +1300,7 @@ def plot_ray_edens(ev=dt.datetime(2015,5,5,21,51), rad="bks", time=18, maxground
     Re = 6371.
     fx = []
     ry = 5
+    print("I'm here")
     for f in files[::ry]:
         th, r, f, _, _ = get_polar(pd.read_csv(f))
         fx.append(trapz(signal.resample(f,INT_F)))
@@ -1313,16 +1320,18 @@ def plot_ray_edens(ev=dt.datetime(2015,5,5,21,51), rad="bks", time=18, maxground
     aax.plot(np.arange(0,2000,dx)/Re, np.ones(int(2000*1/dx))*130+Re, color="r",  lw=1.2, alpha=0.7)
     if showrefract:
         cbax = addColorbar(lcol, ax)
-        _ = cbax.set_ylabel(r"$\Delta V_{d\eta}(t_i), ms^{-1}$")
+        _ = cbax.set_ylabel(r"$\Delta V_{d\eta}(t_i), ms^{-1}$", size=8)
         dv = (0.5 * np.array(fx) * 3e8 / (freq * 1e6))
-        ax.text(0.95, 1.05, r"$V_{d\eta}(t_i)=%.2f$ $ms^{-1}$"%np.median(dv), horizontalalignment="right", verticalalignment="center",
-                transform=ax.transAxes)
-        ax.text(0.02, 1.05, "Rad: bks,  Beam: 07\nDate, $t_i$: %s UT"%(ev+dt.timedelta(minutes=time)).strftime("%Y-%m-%d %H:%M")
-            , horizontalalignment="left", verticalalignment="center",
-                transform=ax.transAxes)
+        ax.text(0.99, 1.05, r"$V_{d\eta}(t_i)=%.2f$ $ms^{-1}$"%np.median(dv), horizontalalignment="right", verticalalignment="center",
+                transform=ax.transAxes, fontdict={"size":8})
+        #ax.text(0.01, 1.1, "Rad: bks,  Beam: 07\nDate, $t_i$: %s UT"%(ev+dt.timedelta(minutes=time)).strftime("%Y-%m-%d %H:%M")
+        #    , horizontalalignment="left", verticalalignment="center",
+        #    transform=ax.transAxes, fontdict={"size":8})
+        ax.set_xlabel("Ground Range, $km$", fontdict={"size":8})
+        ax.set_ylabel("Height, $km$", fontdict={"size":8})
     else: cbax = None
     fig = ax.get_figure()
-    fig.savefig("data/figs/rt.dvn.ti({ti}).{case}.png".format(ti="%02d"%time, case="f"))
+    fig.savefig("data/figs/rt.dvn.ti({ti}).{case}.png".format(ti="%02d"%time, case="f"), bbox_inches="tight")
     plt.close()
     
     ax, aax = curvedEarthAxes(fig=None, rect=rect, maxground=maxground, maxalt=maxalt, nyticks=3)
@@ -1338,13 +1347,13 @@ def plot_ray_edens(ev=dt.datetime(2015,5,5,21,51), rad="bks", time=18, maxground
                 dth, dr, df, _, _ = get_polar(pd.read_csv(df))
                 dh = -(np.max(dr) - np.max(r))
                 ax.text(0.95, 1.02, r"$\Delta h=%.2f$ $km$"%dh, horizontalalignment="right", verticalalignment="center",
-                        transform=ax.transAxes)
+                        transform=ax.transAxes, fontdict={"size":8})
                 aax.plot(th, r, c=raycolor, zorder=zorder, alpha=alpha, lw=0.8)
                 aax.plot(dth, dr, c="b", zorder=zorder, alpha=alpha, ls="--",lw=1.6)
                 #aax.plot(np.arange(0,2000,dx)/Re, np.ones(int(2000*1/dx))*np.max(dr), color="b", ls="--", lw=0.6, alpha=0.7)
                 #aax.plot(np.arange(0,2000,dx)/Re, np.ones(int(2000*1/dx))*np.max(r), color="r", ls="--", lw=0.6, alpha=0.7)
                 
-                axins = ax.inset_axes([0.4, -.7, 0.3, 0.5])
+                axins = ax.inset_axes([0.4, -.8, 0.3, 0.5])
                 axins.plot(np.arange(0,2000,dx)/Re, np.ones(int(2000*1/dx))*np.max(dr), color="b", ls="--", lw=0.6, alpha=0.7)
                 axins.plot(np.arange(0,2000,dx)/Re, np.ones(int(2000*1/dx))*np.max(r), color="k", ls="--", lw=0.6, alpha=0.7)
                 axins.plot(th, r, c=raycolor, zorder=zorder, alpha=alpha, lw=0.8)
@@ -1367,17 +1376,17 @@ def plot_ray_edens(ev=dt.datetime(2015,5,5,21,51), rad="bks", time=18, maxground
     aax.plot(np.arange(0,2000,dx)/Re, np.ones(int(2000*1/dx))*60+Re, color="b", lw=1.2, alpha=0.7)
     aax.plot(np.arange(0,2000,dx)/Re, np.ones(int(2000*1/dx))*95+Re, color="orange", lw=1.2, alpha=0.7)
     aax.plot(np.arange(0,2000,dx)/Re, np.ones(int(2000*1/dx))*130+Re, color="r",  lw=1.2, alpha=0.7)
-    ax.text(0.02, 1.05, "Rad: bks,  Beam: 07\nDate, $t_i$: %s UT"%(ev+dt.timedelta(minutes=time)).strftime("%Y-%m-%d %H:%M")
-        , horizontalalignment="left", verticalalignment="center",
-            transform=ax.transAxes)
+    #ax.text(0.02, 1.05, "Rad: bks,  Beam: 07\nDate, $t_i$: %s UT"%(ev+dt.timedelta(minutes=time)).strftime("%Y-%m-%d %H:%M")
+    #    , horizontalalignment="left", verticalalignment="center",
+    #        transform=ax.transAxes)
     if diff:
-        ax.text(0.95, 1.1, r"$V_{dh}(t_i)=%.2f$ $ms^{-1}$"%np.median(vel), horizontalalignment="right", verticalalignment="center",
-            transform=ax.transAxes)
+        ax.text(0.01, 1.05, r"$V_{dh}(t_i)=%.2f$ $ms^{-1}$"%np.median(vel), horizontalalignment="left", verticalalignment="center",
+                transform=ax.transAxes, fontdict={"size":8})
     else:
-        ax.text(0.95, 1.05, r"$V_{dh}(t_i)=%.2f$ $ms^{-1}$"%np.median(vel), horizontalalignment="right", verticalalignment="center",
-                            transform=ax.transAxes)
+        ax.text(0.99, 1.05, r"$V_{dh}(t_i)=%.2f$ $ms^{-1}$"%np.median(vel), horizontalalignment="right", verticalalignment="center",
+                transform=ax.transAxes, fontdict={"size":8})
     fig = ax.get_figure()
-    fig.savefig("data/figs/rt.dvh.ti({ti}).{case}.png".format(ti="%02d"%time, case="f"))
+    fig.savefig("data/figs/rt.dvh.ti({ti}).{case}.png".format(ti="%02d"%time, case="f"), bbox_inches="tight")
     plt.close()
 
     ax, aax = curvedEarthAxes(fig=None, rect=rect, maxground=maxground, maxalt=maxalt, nyticks=3)
@@ -1388,9 +1397,9 @@ def plot_ray_edens(ev=dt.datetime(2015,5,5,21,51), rad="bks", time=18, maxground
     if diff: mp = aax.pcolor(x, y, ne, cmap="plasma", norm = matplotlib.colors.LogNorm(vmin=1e2, vmax=1e5))
     else: mp = aax.pcolor(x, y, ne, cmap="plasma", norm = matplotlib.colors.LogNorm(vmin=1e2, vmax=1e6))
     cbax = addColorbar(mp, ax)
-    if diff: _ = cbax.set_ylabel(r"$\Delta N_e(t_i-t_{i-1}), cm^{-3}$")
+    if diff: _ = cbax.set_ylabel(r"$\Delta N_e(t_i,t_{i-1}), cm^{-3}$")
     else: _ = cbax.set_ylabel(r"$N_e(t_i), cm^{-3}$")
-    ax.text(0.02, 1.05, "Rad: bks,  Beam: 07\nDate, $t_i$: %s UT"%(ev+dt.timedelta(minutes=time)).strftime("%Y-%m-%d %H:%M"), 
+    ax.text(0.01, 1.1, "Rad: bks,  Beam: 07\nDate, $t_i$: %s UT"%(ev+dt.timedelta(minutes=time)).strftime("%Y-%m-%d %H:%M"), 
         horizontalalignment="left", verticalalignment="center",
             transform=ax.transAxes)
     #ax.text(0.95, 1.05, r"$N_e^{250}=%.2f\times 10^5$ $cm^{-3}$"%np.max(ne[200,:]/1e5), horizontalalignment="right", verticalalignment="center",

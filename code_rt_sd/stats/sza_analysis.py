@@ -128,8 +128,8 @@ def to_interpolate(zz, SZA):
 dn = dt.datetime(2015,5,5,22,11)
 files = glob.glob("../data/op/2015.05.05.22.11/waccmx/*.nc.gz")
 files.sort()
-fo = 18e6
-dlat, dlon = 1, 2
+fo = 12e6
+dlat, dlon = 2, 4
 iri = False
 
 for _i, f in enumerate(files):
@@ -179,6 +179,14 @@ for _i, f in enumerate(files):
     cb = fig.colorbar(c, ax=ax, shrink=0.5)
     cb.set_label(r"$n_ef$, $m^{-3}$")
     ax.set_ylabel("Latitude")
+    np.savetxt("op/sza/sza.txt", SZA)
+    np.savetxt("op/sza/xx.txt", _xx)
+    np.savetxt("op/sza/yy.txt", _yy)
+    np.savetxt("op/sza/vD.txt", vDx)
+    ne = to_interpolate(vD*.01, SZA) + (cosine*vD*.002) 
+    dne = to_interpolate(vD*.01, SZA) + (cosine*vD*.002)
+    d_eta = to_interpolate(vD*.01, SZA) + (cosine*vD*.002)
+    np.savetxt("op/sza/Ne.txt", )
     #ax = axes[2]
     #c = ax.pcolormesh(_xx, _yy, bgc["nex"].sum(axis=0)*1e6, cmap="jet")
     #cb = fig.colorbar(c, ax=ax, shrink=0.5)

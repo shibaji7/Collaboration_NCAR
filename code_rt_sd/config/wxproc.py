@@ -40,12 +40,17 @@ if __name__ == "__main__":
     ui = {"dly": np.zeros((1, 126, 96, 144)), "flr": np.zeros((1, 126, 96, 144))}
     vi = {"dly": np.zeros((1, 126, 96, 144)), "flr": np.zeros((1, 126, 96, 144))}
     wi = {"dly": np.zeros((1, 126, 96, 144)), "flr": np.zeros((1, 126, 96, 144))}
+    ed1 = {"dly": np.zeros((1, 97, 80)), "flr": np.zeros((1, 97, 80))} 
+    ed2 = {"dly": np.zeros((1, 97, 80)), "flr": np.zeros((1, 97, 80))} 
+    spc = {"dly": np.zeros((1, 97, 80)), "flr": np.zeros((1, 97, 80))} 
+    shc = {"dly": np.zeros((1, 97, 80)), "flr": np.zeros((1, 97, 80))} 
     for case, date, ty in zip(cases, dates, typs):
         tm = int((date - date.replace(hour=0, minute=0, second=0)).total_seconds()/(24*60))*(24*60)
         f = fname.format(ev=event.strftime("%Y.%m.%d.%H.%M"), case=ty, dn=event.strftime("%Y-%m-%d"), tm="%05d"%tm)    
         rdat = Dataset(f)
         print(" Fname - ",f)
         lat, lon, lev = rdat.variables["lat"], rdat.variables["lon"], rdat.variables["lev"]
+        mlat, mlon = rdat.variables["mlat"], rdat.variables["mlon"]
         tx = num2date(rdat.variables["time"][:], units=rdat.variables["time"].units)
         tx = np.array([x._to_real_datetime() for x in tx]).astype("datetime64[ns]")
         tx = [dt.datetime.utcfromtimestamp(x.astype(int) * 1e-9) for x in tx]
@@ -57,13 +62,21 @@ if __name__ == "__main__":
         ui[case][0,:,:,:] = rdat.variables["UI"][tm,:,:,:]
         vi[case][0,:,:,:] = rdat.variables["VI"][tm,:,:,:]
         wi[case][0,:,:,:] = rdat.variables["WI"][tm,:,:,:]
+        ed1[case][0,:,:] = rdat.variables["ED1"][tm,:,:]
+        ed2[case][0,:,:] = rdat.variables["ED2"][tm,:,:]
+        spc[case][0,:,:] = rdat.variables["EDYN_ZIGM11_PED"][tm,:,:]
+        shc[case][0,:,:] = rdat.variables["EDYN_ZIGM2_HAL"][tm,:,:]
     ldat.createDimension("lat", len(lat[:]))
     ldat.createDimension("lon", len(lon[:]))
     ldat.createDimension("lev", len(lev[:]))
     ldat.createDimension("time", 1)
+    ldat.createDimension("mlat", len(mlat[:]))
+    ldat.createDimension("mlon", len(mlon[:]))
     rlat, rlon, rlev = ldat.createVariable("lat","f4",("lat",)), ldat.createVariable("lon","f4",("lon",)),\
             ldat.createVariable("lev","f4",("lev",))
+    rmlat, rmlon = ldat.createVariable("mlat","f4",("mlat",)), ldat.createVariable("mlon","f4",("mlon",))
     rlat[:], rlon[:], rlev[:] = lat[:], np.mod( (lon[:] + 180), 360 ) - 180, lev[:]
+    rmlat[:], rmlon[:] = mlat[:], mlon[:]
     rZGd, rZGf, rNEd, rNEf = ldat.createVariable("ZGd","f4",("time", "lev", "lat","lon")),\
             ldat.createVariable("ZGf","f4",("time", "lev", "lat","lon")),\
             ldat.createVariable("NEd","f4",("time", "lev", "lat","lon")),\
@@ -78,10 +91,16 @@ if __name__ == "__main__":
             ldat.createVariable("VIf","f4",("time", "lev", "lat","lon"))
     rWId, rWIf = ldat.createVariable("WId","f4",("time", "lev", "lat","lon")),\
             ldat.createVariable("WIf","f4",("time", "lev", "lat","lon"))
+    rED1, rED2 = ldat.createVariable("ED1","f4",("time", "mlat","mlon")),\
+            ldat.createVariable("ED2","f4",("time", "mlat","mlon"))
+    rPC, rHC = ldat.createVariable("PC","f4",("time", "mlat","mlon")),\
+            ldat.createVariable("HC","f4",("time", "mlat","mlon"))
     rZGd[:], rZGf[:], rNEd[:], rNEf[:] = zg["dly"][:], zg["flr"][:], ne["dly"][:], ne["flr"][:]
     rSPd[:], rSPf[:], rSHd[:], rSHf[:] = sp["dly"][:], sp["flr"][:], sh["dly"][:], sh["flr"][:]
     rUId[:], rUIf[:], rVId[:], rVIf[:] = ui["dly"][:], ui["flr"][:], vi["dly"][:], vi["flr"][:]
     rWId[:], rWIf[:] = wi["dly"][:], wi["flr"][:]
+    rED1[:], rED2[:] = ed1["flr"][:], ed2["flr"][:]
+    rPC[:], rHC[:] = spc["flr"][:], shc["flr"][:]
     ldat.close()
     rdat.close()
     os.system("gzip tmp/waccmx.nc")

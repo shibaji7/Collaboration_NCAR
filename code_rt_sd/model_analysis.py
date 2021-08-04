@@ -22,7 +22,7 @@ import sys
 sys.path.append("sd/")
 import plotlib
 
-case = 1
+case = 2
 
 if case == 0:
     import pandas as pd
@@ -143,7 +143,7 @@ if case == 1:
 if case==2:
     plotlib.plot_ray_edens()
     plotlib.plot_ray_edens(time=12, diff=True)
-    plotlib.plot_ray_edens(time=9, diff=False)
+    #plotlib.plot_ray_edens(time=9, diff=False)
 if case ==3:
     ## Source activate aacgm_carto
     import matplotlib

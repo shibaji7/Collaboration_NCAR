@@ -16,7 +16,7 @@ if len(sys.argv) > 1:
     cmd = cmd.format(r=event["rad"], ev=evnt.strftime("%Y-%m-%dT%H:%M"),
             s=start.strftime("%Y-%m-%dT%H:%M"), e=end.strftime("%Y-%m-%dT%H:%M"))
     print(cmd)
-    os.system(cmd)
+    #os.system(cmd)
 else:
     events = pd.read_csv("config/radar_event_list.csv", parse_dates=["date"])
     if os.path.exists("config/radar_event_list_proc.csv"): L = len(pd.read_csv("config/radar_event_list_proc.csv"))

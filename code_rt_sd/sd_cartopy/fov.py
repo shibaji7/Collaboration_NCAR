@@ -21,7 +21,7 @@ class FoVCarto(GeoAxes):
 
     def __init__(self, *args, **kwargs):
         if "map_projection" in kwargs: self.map_projection = kwargs.pop("map_projection")
-        else: self.map_projection = cartopy.crs.PlateCarree(central_longitude=-95)
+        else: self.map_projection = cartopy.crs.PlateCarree(central_longitude=0)
         if "rad" in kwargs: self.rad = kwargs.pop("rad")
         else: self.rad = "bks"
         if "plot_date" in kwargs: self.plot_date = kwargs.pop("plot_date")
@@ -53,6 +53,7 @@ class FoVCarto(GeoAxes):
     def coastlines(self,resolution="50m", color="black", **kwargs):
         # details!
         kwargs["edgecolor"] = color
+        kwargs["linewidth"] = 0.8
         kwargs["facecolor"] = "none"
         feature = cartopy.feature.NaturalEarthFeature("physical", "coastline",
                 resolution, **kwargs)
@@ -209,18 +210,18 @@ class FoVCarto(GeoAxes):
 register_projection(FoVCarto)
 
 
-def adding_plot(date, fname, coords="geo"):
+def adding_plot(date, fname, coords="geo", rad="bks"):
     import matplotlib.pyplot as plt
     fig = plt.figure()
     ax = fig.add_subplot(projection="fovcarto",\
-            coords=coords, plot_date=date)
+            coords=coords, plot_date=date,  rad=rad)
     ax.coastlines()
     ax.overlay_radar()
     ax.overlay_fov()
     ax.grid_on()
     ax.enum()
     fig.savefig(fname, bbox_inches="tight")
-    return
+    return ax, fig
 
 def adding_plots(dates, fname, coords="geo", nrows=2, ncols=2):
     import matplotlib.pyplot as plt
@@ -242,11 +243,35 @@ def adding_plots(dates, fname, coords="geo", nrows=2, ncols=2):
     fig.savefig(fname, bbox_inches="tight")
     return
 
+def adding_radars(date, fname, coords="geo", rads=["bks", "wal", "fhw", "fhe"]):
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    ax = fig.add_subplot(projection="fovcarto",\
+            coords=coords, plot_date=date, map_projection=cartopy.crs.Orthographic(central_longitude=-95, central_latitude=90))
+    ax.coastlines()
+    for rad in rads:
+        ax.rad = rad
+        #ax.overlay_radar()
+        #ax.overlay_fov()
+    #ax.grid_on()
+    #ax.enum(bounds=[-150, -40, 20, 90])
+    fig.savefig(fname, bbox_inches="tight")
+    return ax, fig
+
+def get_globe(fig, num, date, coords="geo"):
+    import matplotlib.pyplot as plt
+    ax = fig.add_subplot(num, projection="fovcarto",\
+            coords=coords, plot_date=date)
+    ax.coastlines()
+    return ax, fig, ax.map_projection, cartopy.crs.Geodetic()
+
+
 if __name__ == "__main__":
-    plot_date = dt.datetime(2015,1,1,4)
-    adding_plot(plot_date, "carto_test.png", coords="geo")
-    adding_plots([dt.datetime(2015,5,5,22,0), dt.datetime(2015,5,5,22,0),
-        dt.datetime(2015,5,5,22,0), dt.datetime(2015,5,5,22,0)], "carto_test.png", coords="geo", nrows=2, ncols=2)
+    #plot_date = dt.datetime(2015,1,1,4)
+    #adding_plot(plot_date, "carto_test.png", coords="geo")
+    #adding_plots([dt.datetime(2015,5,5,22,0), dt.datetime(2015,5,5,22,0),
+    #    dt.datetime(2015,5,5,22,0), dt.datetime(2015,5,5,22,0)], "carto_test.png", coords="geo", nrows=2, ncols=2)
+    adding_radars(dt.datetime(2015,5,5,22,0), "fov.png", coords="geo")
     import os
     os.system("rm -rf *.log")
     os.system("rm -rf __pycache__/")

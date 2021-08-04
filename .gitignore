@@ -11,6 +11,9 @@ code_rt_sd/data/*
 *.csv
 *.png
 *.jpg
+*.txt
+*.pkl
+code_rt_sd/stats/op/*
 
 # C extensions
 *.so

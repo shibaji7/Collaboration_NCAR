@@ -70,7 +70,7 @@ if __name__ == "__main__":
     d_reg, e_reg, f_reg = [60,90], [100,130], [140,300]
     args = parser.parse_args()
     model = "waccmx"
-    vD, vE, vF, vFh, vT, SZA = [], [], [], [], [], []
+    vD, vE, vF, vFh, vT, SZA, E, F = [], [], [], [], [], [], [], []
     events = pd.read_csv("op/radar_event_list.csv", parse_dates=["date"])
     T, kind = 1, "A"
     if args.type == "M" or args.type == "X":
@@ -113,19 +113,27 @@ if __name__ == "__main__":
                                     vFh.append(vfh)
                                     vT.append(vd+ve+vf+vfh)
                                     SZA.append(sza)
+                                    E.append(elv)
+                                    F.append(freq)
                                 except: pass
             #if t and T: break
             ix += 1
         x = pd.DataFrame()
-        x["vD"], x["vE"], x["vF"], x["vFh"], x["vT"], x["sza"] = vD, vE, vF, vFh, vT, SZA
+        x["vD"], x["vE"], x["vF"], x["vFh"], x["vT"], x["sza"], x["elv"], x["freq"] = vD, vE, vF, vFh, vT, SZA, E, F
         x = x.round(3)
         x.to_csv("op/" + sim_fname.format(kind=kind), index=False)
-    else: 
-        x = pd.read_csv("op/"+sim_fname.format(kind=kind))
+    else:
+        print(" Compile plots...")
+        print("op/"+sim_fname.format(kind=kind))
+        x0 = pd.read_csv("op/"+sim_fname.format(kind=kind))
+        x0 = x0[(np.abs(x0.vT)>30) & (np.abs(x0.vT)<300)]
+        vd0, ve0, vf0 = np.array(x0.vD/x0.vT), np.array(x0.vE/x0.vT), np.array((x0.vF + x0.vFh)/x0.vT)
+        vdn0, vdh0 = np.array((x0.vD + x0.vE + x0.vF)/x0.vT), np.array(x0.vFh/x0.vT)
+        x = pd.read_csv("op/finescale_simulate.csv")
         x = x[(np.abs(x.vT)>30) & (np.abs(x.vT)<300)]
         vd, ve, vf = np.array(x.vD/x.vT), np.array(x.vE/x.vT), np.array((x.vF + x.vFh)/x.vT)
         vdn, vdh = np.array((x.vD + x.vE + x.vF)/x.vT), np.array(x.vFh/x.vT)
-        plotlib.plot_htstogram(vd, ve, vf, vdn, vdh, kind)
+        plotlib.plot_mastogram(vd, ve, vf, vdn, vdh, vd0, ve0, vf0, vdn0, vdh0)
     if os.path.exists("__pycache__/"):
         os.system("rm -rf __pycache__/")
         os.system("rm -rf py*.log")
