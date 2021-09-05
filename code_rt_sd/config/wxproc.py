@@ -91,16 +91,22 @@ if __name__ == "__main__":
             ldat.createVariable("VIf","f4",("time", "lev", "lat","lon"))
     rWId, rWIf = ldat.createVariable("WId","f4",("time", "lev", "lat","lon")),\
             ldat.createVariable("WIf","f4",("time", "lev", "lat","lon"))
-    rED1, rED2 = ldat.createVariable("ED1","f4",("time", "mlat","mlon")),\
-            ldat.createVariable("ED2","f4",("time", "mlat","mlon"))
-    rPC, rHC = ldat.createVariable("PC","f4",("time", "mlat","mlon")),\
-            ldat.createVariable("HC","f4",("time", "mlat","mlon"))
+    rED1d, rED2d = ldat.createVariable("ED1d","f4",("time", "mlat","mlon")),\
+            ldat.createVariable("ED2d","f4",("time", "mlat","mlon"))
+    rED1f, rED2f = ldat.createVariable("ED1f","f4",("time", "mlat","mlon")),\
+            ldat.createVariable("ED2f","f4",("time", "mlat","mlon"))
+    rPCd, rHCd = ldat.createVariable("PCd","f4",("time", "mlat","mlon")),\
+            ldat.createVariable("HCd","f4",("time", "mlat","mlon"))
+    rPCf, rHCf = ldat.createVariable("PCf","f4",("time", "mlat","mlon")),\
+            ldat.createVariable("HCf","f4",("time", "mlat","mlon"))
     rZGd[:], rZGf[:], rNEd[:], rNEf[:] = zg["dly"][:], zg["flr"][:], ne["dly"][:], ne["flr"][:]
     rSPd[:], rSPf[:], rSHd[:], rSHf[:] = sp["dly"][:], sp["flr"][:], sh["dly"][:], sh["flr"][:]
     rUId[:], rUIf[:], rVId[:], rVIf[:] = ui["dly"][:], ui["flr"][:], vi["dly"][:], vi["flr"][:]
     rWId[:], rWIf[:] = wi["dly"][:], wi["flr"][:]
-    rED1[:], rED2[:] = ed1["flr"][:], ed2["flr"][:]
-    rPC[:], rHC[:] = spc["flr"][:], shc["flr"][:]
+    rED1f[:], rED2f[:] = ed1["flr"][:], ed2["flr"][:]
+    rED1d[:], rED2d[:] = ed1["dly"][:], ed2["dly"][:]
+    rPCf[:], rHCf[:] = spc["flr"][:], shc["flr"][:]
+    rPCd[:], rHCd[:] = spc["dly"][:], shc["dly"][:]
     ldat.close()
     rdat.close()
     os.system("gzip tmp/waccmx.nc")
