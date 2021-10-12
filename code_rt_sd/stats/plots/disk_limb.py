@@ -41,6 +41,7 @@ def plot_fism_enhancement():
     ax = fig.add_subplot(211)
     date = dt.datetime(int(str(cent["date"])[:4]), 1, 1) + dt.timedelta(int(str(cent["date"])[4:])-1)
     ax.text(0.01, 1.05, "Date:%s"%date.strftime("%Y-%m-%d"), ha="left", va="center", transform=ax.transAxes)
+    ax.text(0.01, 0.9, "(a)", ha="left", va="center", transform=ax.transAxes)
     ax.semilogy(cent["fism_wv"], cent["fism_pred"][:, secs], "r", lw=1.2, label="Center Flare (peak at 17:37 UT)")
     ax.semilogy(limb["fism_wv"], limb["fism_pred"][:, secs], "b", lw=1.0, label="Limb Flare (peak at 17:37 UT)")
     ax.semilogy(no["fism_wv"], no["fism_pred"][:, secs], "k", lw=0.6, label="Pre-flare (17:20 UT)")
@@ -49,6 +50,7 @@ def plot_fism_enhancement():
     ax.set_xlim(0,190)
     ax.set_ylabel(r"Solar Irradiance, $Wm^2$")
     ax = fig.add_subplot(212)
+    ax.text(0.01, 0.9, "(b)", ha="left", va="center", transform=ax.transAxes)
     ax.semilogy(cent["fism_wv"],100*(cent["fism_pred"][:, secs]-no["fism_pred"][:, secs])/no["fism_pred"][:, secs], "r", lw=1.2, label="Center Flare")
     ax.semilogy(limb["fism_wv"],100*(limb["fism_pred"][:, secs]-no["fism_pred"][:, secs])/no["fism_pred"][:, secs], "b", lw=1.0, label="Limb Flare")
     ax.legend(loc=1)
@@ -133,18 +135,20 @@ def plot_2D_distribution(alt=200, zipd=True, date=dt.datetime(2003,1,1), Re=6.35
 def plot_1D(frq=6.5e6, loc=[10,-100], date=dt.datetime(2003,9,7,17,37)):
     import sza
     mdata = sza.from_pickle("data_DL.pkl")
+    print(mdata.keys())
     cent, limb = mdata["cent"], mdata["limb"]
     cent0, limb0 = mdata["cent0"], mdata["limb0"]
 
-    fig = plt.figure(dpi=100, figsize=(6,3))
+    fig = plt.figure(dpi=150, figsize=(6,3))
     ax = fig.add_subplot(121)
+    ax.text(0.01, 0.9, "(c)", ha="left", va="center", transform=ax.transAxes)
     i,j = sza._get_ij_(cent["latx"], cent["lonx"], loc[0], loc[1])
     ax.semilogx(cent["nex"][:,i,j]*1e6, cent["alts"], lw=0.8, color="r", label="Disk")
     ax.semilogx(limb["nex"][:,i,j]*1e6, limb["alts"], lw=0.8, color="b", label="Limb")
     c_indx = np.argmin(np.abs(sza.calculate_fp(cent["nex"][:,i,j])-frq))
-    ax.axhline(cent["alts"][c_indx], color="r", lw=0.8, ls="--")
+    ax.axhline(cent["alts"][c_indx], color="r", lw=0.4)
     l_indx = np.argmin(np.abs(sza.calculate_fp(limb["nex"][:,i,j])-frq))
-    ax.axhline(limb["alts"][l_indx], color="b", lw=0.8, ls="--")
+    ax.axhline(limb["alts"][l_indx], color="b", lw=0.4)
     ax.text(0.8,0.9, "$\chi=%.1f^o$"%sza.get_SZA(loc[0], loc[1], date), ha="center", va="center", transform=ax.transAxes)
     ax.set_ylim(90, 300)
     ax.set_xlim(1e9,1e12)
@@ -152,20 +156,25 @@ def plot_1D(frq=6.5e6, loc=[10,-100], date=dt.datetime(2003,9,7,17,37)):
     ax.set_ylabel(r"Height, km")
     ax = fig.add_subplot(122)
     ax.set_ylim(90, 300)
-    ax.axhline(cent["alts"][c_indx], color="r", lw=0.8, ls="--")
-    ax.axhline(limb["alts"][l_indx], color="b", lw=0.8, ls="--")
+    ax.axhline(cent["alts"][c_indx], color="r", lw=0.4)
+    ax.axhline(limb["alts"][l_indx], color="b", lw=0.4)
     ax.text(1.05,0.5,"$f_0=%.1f$ MHz"%(frq/1e6), ha="center", va="center", transform=ax.transAxes, rotation=90)
     n_diff = -1*(sza.calculate_eta(cent["nex"][:,i,j], cent["alts"], loc[0], loc[1], date, frq) -\
             sza.calculate_eta(cent0["nex"][:,i,j], cent0["alts"], loc[0], loc[1], date, frq))
     n_diff[c_indx:] = np.nan
-    ax.plot(n_diff, cent["alts"], lw=1, color="r")
+    v_diff = 1e3*2*frq*n_diff/3e8
+    ax.axhline(cent["alts"][np.nanargmax(v_diff)], color="r", lw=0.8, ls="--")
+    ax.plot(v_diff, cent["alts"], lw=1, color="r")
 
     n_diff = -1*(sza.calculate_eta(limb["nex"][:,i,j], limb["alts"], loc[0], loc[1], date, frq) -\
             sza.calculate_eta(limb0["nex"][:,i,j], limb0["alts"], loc[0], loc[1], date, frq))
     n_diff[l_indx:] = np.nan
-    ax.plot(n_diff, limb["alts"], lw=1, color="b")
-    ax.set_xlim(0,.5)
-    ax.set_xlabel(r"Change in refractive index, $\delta\eta_o$")
+    v_diff = 1e3*2*frq*n_diff/3e8
+    ax.axhline(cent["alts"][np.nanargmax(v_diff)], color="b", lw=0.8, ls="--")
+    ax.text(0.01, 0.9, "(d)", ha="left", va="center", transform=ax.transAxes)
+    ax.plot(v_diff, limb["alts"], lw=1, color="b")
+    ax.set_xlim(0,20)
+    ax.set_xlabel(r"Doppler Velocity, $V_x (\times 1000, ms^{-1})$")
     fig.subplots_adjust(hspace=0.3, wspace=0.3)
     fig.savefig("figures/disk_limb_dist_2.png", bbox_inches="tight")
     return

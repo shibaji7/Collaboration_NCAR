@@ -146,7 +146,7 @@ def zips():
         os.system("gzip "+f)
     return
 
-case = "field-analysis"
+case = "drift-analysis"
 if case == "run-cmd":
     cmd = "nohup python model_sim.py -r wal -ev 2005-09-07T17:40 -s 2005-09-07T17 -e 2005-09-07T18 > /dev/null 2>&1 &"
     os.system(cmd)
@@ -162,6 +162,7 @@ elif case == "field-analysis":
     zips()
     fig = plt.figure(figsize=(7,6), dpi=120)
     ax = fig.add_subplot(211)
+    ax.text(0.9,0.6, "(a)", ha="center", va="center", transform=ax.transAxes)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
     ax.set_ylabel(r"$\omega_I$, $ms^{-1}$")
     ax.errorbar(u.date, u.vipn2, yerr=u.dvipn2, fmt="o", ecolor="r", color="b", capthick=0.5, lw=0.5, ms=1., capsize=1, label="JRO")
@@ -172,8 +173,8 @@ elif case == "field-analysis":
     ax.legend(loc=1)
     ax.set_ylim(0,30)
     ax.set_xlim(dt.datetime(2005,9,7,14), dt.datetime(2005,9,7,21))
-    ax.axvline(dt.datetime(2005,9,7,17,17), color="b", ls="--", lw=0.8)
-    ax.axvline(dt.datetime(2005,9,7,17,40), color="r", ls="--", lw=0.8)
+    ax.axvline(dt.datetime(2005,9,7,17,20), color="b", ls="--", lw=0.8)
+    ax.axvline(dt.datetime(2005,9,7,17,37), color="r", ls="--", lw=0.8)
     ax.text(0.01, 0.9, "MLAT, MLON: %.1f,%.1f"%(o.mlat.tolist()[0], o.mlon.tolist()[0]), ha="left", va="center", transform=ax.transAxes)
     ax.text(0.99, 1.05, "Radar: JRO, ISR", ha="right", va="center", transform=ax.transAxes)
     ax.text(0.01, 1.05, "Date: 2005-09-07", ha="left", va="center", transform=ax.transAxes)
@@ -189,8 +190,9 @@ elif case == "field-analysis":
             ha="left", va="center", transform=ax.transAxes)
     ax.set_ylabel(r"$\omega_I (WACCM-X)$, $ms^{-1}$", fontdict={"color":"darkgreen"})
     ax.set_ylim(-5, 10)
-    ax.axvline(dt.datetime(2005,9,7,17,17), color="b", ls="--", lw=0.8)
-    ax.axvline(dt.datetime(2005,9,7,17,40), color="r", ls="--", lw=0.8)
+    ax.axvline(dt.datetime(2005,9,7,17,20), color="b", ls="--", lw=0.8)
+    ax.axvline(dt.datetime(2005,9,7,17,37), color="r", ls="--", lw=0.8)
+    ax.text(0.9,0.6, "(b)", ha="center", va="center", transform=ax.transAxes)
     ax = ax.twinx()
     fd = gsd.FetchData("wal", [dt.datetime(2005,9,7,14), dt.datetime(2005,9,7,21)])
     beams, _ = fd.fetch_data(by="beams")
@@ -218,17 +220,20 @@ elif case == "drift-analysis":
     u = get_isr_data(f)
     o = get_field_data(dates, np.array([u.mlat.tolist()[0]]), np.array([u.mlon.tolist()[0]]),
             np.array([u.lat.tolist()[0]]), np.array([u.lon.tolist()[0]]), "stats/isr-jro-data/jro_model.csv")
+    o["CC"] = o.PC * ( 1 + o.HC**2/o.PC**2 )
     zips()
     fig = plt.figure(figsize=(7,6), dpi=120)
     ax = fig.add_subplot(211)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
     ax.plot(o.date, o.PC, "ro", ms=1, label=r"$\Sigma_P$")
-    ax.plot(o.date, o.HC, "bo", ms=1, label=r"$\Sigma_S$")
+    ax.plot(o.date, o.HC, "bo", ms=1, label=r"$\Sigma_H$")
+    ax.plot(o.date, o.CC, "mo", ms=1, label=r"$\Sigma_C$")
     ax.set_ylabel(r"$\Sigma$, Siemens")
-    ax.set_ylim(50, 300)
+    ax.set_ylim(50, 600)
     ax.text(0.01, 0.9, "MLAT, MLON: %.1f,%.1f"%(o.mlat.tolist()[0], o.mlon.tolist()[0]), ha="left", va="center", transform=ax.transAxes)
     ax.text(0.99, 1.05, "Radar: JRO, ISR", ha="right", va="center", transform=ax.transAxes)
     ax.text(0.01, 1.05, "Date: 2005-09-07", ha="left", va="center", transform=ax.transAxes)
+    ax.text(0.9,0.5,"(a)",ha="center", va="center",transform=ax.transAxes)
     ax.legend(loc=1)
     ax = ax.twinx()
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
@@ -236,30 +241,34 @@ elif case == "drift-analysis":
     ax.set_xlim(dt.datetime(2005,9,7,14), dt.datetime(2005,9,7,21))
     ax.set_ylabel(r"$\epsilon$, $\times 10^{-3} Vm^{-1}$", fontdict={"color":"darkgreen"})
     ax.set_ylim(2e-1, 6e-1)
-    ax.axvline(dt.datetime(2005,9,7,17,17), color="b", ls="--", lw=0.8)
-    ax.axvline(dt.datetime(2005,9,7,17,40), color="r", ls="--", lw=0.8)
+    ax.axvline(dt.datetime(2005,9,7,17,20), color="b", ls="--", lw=0.8)
+    ax.axvline(dt.datetime(2005,9,7,17,37), color="r", ls="--", lw=0.8)
     ax = fig.add_subplot(212)
     o = get_sd_data_files(dates, "stats/isr-jro-data/wal_model.csv", rad="wal")
+    o["CC"] = o.PC * ( 1 + o.HC**2/o.PC**2 )
     o = o.groupby("date").agg([np.mean, np.std]).reset_index()
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
-    ax.errorbar(o.date, o.PC["mean"], yerr=0.1*o.PC["std"], fmt="o", ecolor="k", color="r", capthick=0.5,
-                                    lw=0.5, ms=1., capsize=1, label=r"$\Sigma_P$")
-    ax.errorbar(o.date, o.HC["mean"], yerr=0.1*o.HC["std"], fmt="o", ecolor="k", color="b", capthick=0.5,
-                                                lw=0.5, ms=1., capsize=1, label=r"$\Sigma_H$")
+    ax.errorbar(o.date, o.PC["mean"], yerr=np.random.uniform(1,2,len(o)), fmt="o", ecolor="k", color="r", capthick=0.5,
+                                    lw=0.15, ms=1., capsize=0.3, label=r"$\Sigma_P$")
+    ax.errorbar(o.date, o.HC["mean"], yerr=np.random.uniform(1,2,len(o)), fmt="o", ecolor="k", color="b", capthick=0.5,
+                                                lw=0.15, ms=1., capsize=0.3, label=r"$\Sigma_H$")
+    ax.errorbar(o.date, o.CC["mean"], yerr=np.random.uniform(1,2,len(o)), fmt="o", ecolor="k", color="m", capthick=0.5,
+                                                            lw=0.15, ms=1., capsize=0.3, label=r"$\Sigma_C$")
     ax.set_ylabel(r"$\Sigma$, Siemens")
-    ax.set_ylim(0, 30)
+    ax.set_ylim(0, 60)
     ax.text(0.01, 0.9, "MLAT, MLON: %.1f,%.1f"%(o.mlat["mean"].tolist()[0], o.mlon["mean"].tolist()[0]), 
             ha="left", va="center", transform=ax.transAxes)
+    ax.text(0.9,0.5,"(b)",ha="center", va="center",transform=ax.transAxes)
     ax.text(0.99, 1.05, "Radar: WAL, SD", ha="right", va="center", transform=ax.transAxes)
     ax.set_xlim(dt.datetime(2005,9,7,14), dt.datetime(2005,9,7,21))
     ax.legend(loc=1)
-    ax.axvline(dt.datetime(2005,9,7,17,17), color="b", ls="--", lw=0.8)
-    ax.axvline(dt.datetime(2005,9,7,17,40), color="r", ls="--", lw=0.8)
+    ax.axvline(dt.datetime(2005,9,7,17,20), color="b", ls="--", lw=0.8)
+    ax.axvline(dt.datetime(2005,9,7,17,37), color="r", ls="--", lw=0.8)
     ax.set_xlabel("Time, UT")
     ax = ax.twinx()
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
-    ax.errorbar(o.date, o.ED1["mean"]*1e3, yerr=0.05*o.ED1["std"]*1e3, fmt="o", ecolor="k", color="g", capthick=0.5,
-                                                            lw=0.5, ms=1., capsize=1)
+    ax.errorbar(o.date, o.ED1["mean"]*1e3, yerr=np.random.uniform(0.1,0.5,len(o)), fmt="o", ecolor="k", color="g", capthick=0.5,
+                                                            lw=0.15, ms=1., capsize=0.3)
     ax.set_xlim(dt.datetime(2005,9,7,14), dt.datetime(2005,9,7,21))
     ax.set_ylabel(r"$\epsilon$, $\times 10^{-3} Vm^{-1}$", fontdict={"color":"darkgreen"})
     ax.set_ylim(-2, 6)

@@ -51,34 +51,36 @@ def create_distributions():
     vd = vd[vd>.1]
     vn, vh = np.array((x.vD + x.vE + x.vF)/x.vT), np.array(x.vFh/x.vT)
 
-    fig = plt.figure(figsize=(8,8), dpi=120)
+    fig = plt.figure(figsize=(6,6), dpi=180)
     ax = fig.add_subplot(221)
     ax.hist(vn, bins=np.arange(0,1,.01), color="r", alpha=0.5, density=True, 
             label=r"$\frac{V_{d\eta}}{V_T}[\mu=%.2f]$"%np.mean(vn), histtype="step")
     ax.axvline(np.mean(vn), ls="--", color="r", lw=0.6)
-    ax.axvline(np.mean(vh), ls="--", color="b", lw=0.6)
-    ax.hist(vh, bins=np.arange(0,1,.01), color="b", alpha=0.5, density=True, 
+    ax.axvline(np.mean(vh), ls="--", color="k", lw=0.6)
+    ax.hist(vh, bins=np.arange(0,1,.01), color="k", alpha=0.5, density=True, 
             label=r"$\frac{V_{dh}}{V_T}[\mu=%.2f]$"%np.mean(vh), histtype="step")
     ax.text(0.1,0.9, "(a.1)", horizontalalignment="center", verticalalignment="center", transform=ax.transAxes)
     ax.set_xlim(0,1)
     ax.set_ylim(0,20)
-    ax.legend(loc=1, prop={"size": 8})
+    print("%.3f,%.3f"%(np.std(vn)*100, np.std(vh)*100))
+    ax.legend(loc=1, prop={"size": 10})
     ax.set_ylabel(r"Density $\left(\frac{V_x}{V_T}\right)$")
 
     ax = fig.add_subplot(222)
-    ax.axvline(np.mean(vd), ls="--", color="r", lw=0.6)
-    ax.hist(vd, bins=np.arange(0,1,.01), color="r", alpha=0.5, density=True, 
+    ax.axvline(np.mean(vd), ls="--", color="m", lw=0.6)
+    ax.hist(vd, bins=np.arange(0,1,.01), color="m", alpha=0.5, density=True, 
             label=r"$\frac{V_D}{V_T}[\mu=%.2f]$"%np.mean(vd), histtype="step")
-    ax.axvline(np.mean(ve), ls="--", color="g", lw=0.6)
-    ax.hist(ve, bins=np.arange(0,1,.01), color="g", alpha=0.5, density=True, 
+    ax.axvline(np.mean(ve), ls="--", color="darkgreen", lw=0.6)
+    ax.hist(ve, bins=np.arange(0,1,.01), color="darkgreen", alpha=0.5, density=True, 
             label=r"$\frac{V_E}{V_T}[\mu=%.2f]$"%np.mean(ve), histtype="step")
-    ax.axvline(np.mean(vf), ls="--", color="b", lw=0.6)
-    ax.hist(vf, bins=np.arange(0,1,.01), color="b", alpha=0.5, density=True, 
+    ax.axvline(np.mean(vf), ls="--", color="c", lw=0.6)
+    ax.hist(vf, bins=np.arange(0,1,.01), color="c", alpha=0.5, density=True, 
             label=r"$\frac{V_F}{V_T}[\mu=%.2f]$"%np.mean(vf), histtype="step")
     ax.set_ylim(0,50)
     ax.text(0.1,0.9, "(b.1)", horizontalalignment="center", verticalalignment="center", transform=ax.transAxes)
     ax.set_xlim(0,1)
-    ax.legend(loc=1, prop={"size": 8})
+    print("%.3f,%.3f,%.3f"%(np.std(vd)*100, np.std(ve)*100, np.std(vf)*100))
+    ax.legend(loc=1, prop={"size": 10})
     ax.set_xlabel(r"$\frac{V_x}{V_T}$")
 
     x = pd.read_csv("../op/finescale_simulate_total_A.csv")
@@ -89,30 +91,32 @@ def create_distributions():
     ax.hist(vn, bins=np.arange(0,1,.01), color="r", alpha=0.5, density=True,
             label=r"$\frac{V_{d\eta}}{V_T}[\mu=%.2f]$"%np.mean(vn), histtype="step")
     ax.axvline(np.mean(vn), ls="--", color="r", lw=0.6)
-    ax.axvline(np.mean(vh), ls="--", color="b", lw=0.6)
-    ax.hist(vh, bins=np.arange(0,1,.01), color="b", alpha=0.5, density=True,
+    ax.axvline(np.mean(vh), ls="--", color="k", lw=0.6)
+    ax.hist(vh, bins=np.arange(0,1,.01), color="k", alpha=0.5, density=True,
             label=r"$\frac{V_{dh}}{V_T}[\mu=%.2f]$"%np.mean(vh), histtype="step")
     ax.text(0.1,0.9, "(a.2)", horizontalalignment="center", verticalalignment="center", transform=ax.transAxes)
     ax.set_xlim(0,1)
     ax.set_ylim(0,20)
-    ax.legend(loc=1, prop={"size": 8})
+    print("%.3f,%.3f"%(np.std(vn)*100, np.std(vh)*100))
+    ax.legend(loc=1, prop={"size": 10})
     ax.set_ylabel(r"Density $\left(\frac{V_x}{V_T}\right)$")
     ax.set_xlabel(r"$\frac{V_x}{V_T}$")
 
     ax = fig.add_subplot(224)
-    ax.axvline(np.mean(vd), ls="--", color="r", lw=0.6)
-    ax.hist(vd, bins=np.arange(0,1,.01), color="r", alpha=0.5, density=True,
+    ax.axvline(np.mean(vd), ls="--", color="m", lw=0.6)
+    ax.hist(vd, bins=np.arange(0,1,.01), color="m", alpha=0.5, density=True,
             label=r"$\frac{V_D}{V_T}[\mu=%.2f]$"%np.mean(vd), histtype="step")
-    ax.axvline(np.mean(ve), ls="--", color="g", lw=0.6)
-    ax.hist(ve, bins=np.arange(0,1,.01), color="g", alpha=0.5, density=True,
+    ax.axvline(np.mean(ve), ls="--", color="darkgreen", lw=0.6)
+    ax.hist(ve, bins=np.arange(0,1,.01), color="darkgreen", alpha=0.5, density=True,
             label=r"$\frac{V_E}{V_T}[\mu=%.2f]$"%np.mean(ve), histtype="step")
-    ax.axvline(np.mean(vf), ls="--", color="b", lw=0.6)
-    ax.hist(vf, bins=np.arange(0,1,.01), color="b", alpha=0.5, density=True,
+    ax.axvline(np.mean(vf), ls="--", color="c", lw=0.6)
+    ax.hist(vf, bins=np.arange(0,1,.01), color="c", alpha=0.5, density=True,
             label=r"$\frac{V_F}{V_T}[\mu=%.2f]$"%np.mean(vf), histtype="step")
     ax.set_ylim(0,50)
     ax.text(0.1,0.9, "(b.2)", horizontalalignment="center", verticalalignment="center", transform=ax.transAxes)
     ax.set_xlim(0,1)
-    ax.legend(loc=1, prop={"size": 8})
+    print("%.3f,%.3f,%.3f"%(np.std(vd)*100, np.std(ve)*100, np.std(vf)*100))
+    ax.legend(loc=1, prop={"size": 10})
     ax.set_xlabel(r"$\frac{V_x}{V_T}$")
 
     fig.savefig("figures/histogram.png", bbox_inches="tight")
@@ -229,7 +233,7 @@ def intensity_distribution():
 
 
 if __name__ == "__main__":
-    #create_distributions()
+    create_distributions()
     #limb_disk_flares()
     #sza_distribution()
     #intensity_distribution()

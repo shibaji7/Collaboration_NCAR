@@ -32,7 +32,7 @@ def plot_freq_versus_height_contour_plots(fig, ax, freqs=np.linspace(5,14,101)*1
         n_diff = -1*(sza.calculate_eta(cent["nex"][:,i,j], cent["alts"], loc[0], loc[1], date, f) -\
                 sza.calculate_eta(cent0["nex"][:,i,j], cent0["alts"], loc[0], loc[1], date, f))
         n_diff[c_indx:] = np.nan
-        nds[_i,:] = n_diff
+        nds[_i,:] = 2*f*n_diff/3e8
         if _i==-1:
             print(n_diff)
             print("Freq: - ", f/1e6)
@@ -45,7 +45,7 @@ def plot_freq_versus_height_contour_plots(fig, ax, freqs=np.linspace(5,14,101)*1
     ax.set_ylim(100,300)
     ax.set_xlim(5,14)
     cb = fig.colorbar(c, ax=ax, shrink=0.8)
-    cb.set_label(r"$\delta\eta_o$")
+    cb.set_label(r"$V_x (ms^{-1})$")
     ax.text(0.01, 1.05, "Date:%s UT"%date.strftime("%Y-%m-%d %H:%M"), ha="left", va="center", transform=ax.transAxes)
     ax.text(0.1,0.9,"$\chi=%.1f^o$"%sza.get_SZA(loc[0], loc[1], date), ha="left", va="center", transform=ax.transAxes)
     return
