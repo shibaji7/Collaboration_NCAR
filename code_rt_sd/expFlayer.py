@@ -146,7 +146,7 @@ def zips():
         os.system("gzip "+f)
     return
 
-case = "drift-analysis"
+case = "field-analysis"
 if case == "run-cmd":
     cmd = "nohup python model_sim.py -r wal -ev 2005-09-07T17:40 -s 2005-09-07T17 -e 2005-09-07T18 > /dev/null 2>&1 &"
     os.system(cmd)
@@ -165,7 +165,7 @@ elif case == "field-analysis":
     ax.text(0.9,0.6, "(a)", ha="center", va="center", transform=ax.transAxes)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
     ax.set_ylabel(r"$\omega_I$, $ms^{-1}$")
-    ax.errorbar(u.date, u.vipn2, yerr=u.dvipn2, fmt="o", ecolor="r", color="b", capthick=0.5, lw=0.5, ms=1., capsize=1, label="JRO")
+    ax.errorbar(u.date, u.vipn2, yerr=u.dvipn2, fmt="o", ecolor="r", color="b", capthick=0.5, lw=0.5, ms=1., capsize=1, label="JULIA")
     y = 0.5*(o.WI_min+o.WI_max)
     up, lo = o.WI_max-y, y-o.WI_min
     ax.errorbar(o.date[::5], y[::5], yerr=[lo[::5], up[::5]], fmt="o", ecolor="r", color="g", capthick=0.5,
@@ -176,7 +176,7 @@ elif case == "field-analysis":
     ax.axvline(dt.datetime(2005,9,7,17,20), color="b", ls="--", lw=0.8)
     ax.axvline(dt.datetime(2005,9,7,17,37), color="r", ls="--", lw=0.8)
     ax.text(0.01, 0.9, "MLAT, MLON: %.1f,%.1f"%(o.mlat.tolist()[0], o.mlon.tolist()[0]), ha="left", va="center", transform=ax.transAxes)
-    ax.text(0.99, 1.05, "Radar: JRO, ISR", ha="right", va="center", transform=ax.transAxes)
+    ax.text(0.99, 1.05, "Radar: JRO, JULIA", ha="right", va="center", transform=ax.transAxes)
     ax.text(0.01, 1.05, "Date: 2005-09-07", ha="left", va="center", transform=ax.transAxes)
     ax = fig.add_subplot(212)
     dates = [dt.datetime(2005,9,7,14) + dt.timedelta(minutes=i) for i in range(420)]
@@ -188,12 +188,12 @@ elif case == "field-analysis":
                         lw=0.5, ms=1., capsize=1, label="WACCM-X")
     ax.text(0.01, 0.9, "MLAT, MLON: %.1f,%.1f"%(o.mlat["mean"].tolist()[0], o.mlon["mean"].tolist()[0]),
             ha="left", va="center", transform=ax.transAxes)
-    ax.set_ylabel(r"$\omega_I (WACCM-X)$, $ms^{-1}$", fontdict={"color":"darkgreen"})
+    ax.set_ylabel(r"$\omega_I (WACCM-X)$, $ms^{-1}$"+"\n"+r"LoS ($\times 10$), $ms^-1$")
     ax.set_ylim(-5, 10)
     ax.axvline(dt.datetime(2005,9,7,17,20), color="b", ls="--", lw=0.8)
     ax.axvline(dt.datetime(2005,9,7,17,37), color="r", ls="--", lw=0.8)
     ax.text(0.9,0.6, "(b)", ha="center", va="center", transform=ax.transAxes)
-    ax = ax.twinx()
+    #ax = ax.twinx()
     fd = gsd.FetchData("wal", [dt.datetime(2005,9,7,14), dt.datetime(2005,9,7,21)])
     beams, _ = fd.fetch_data(by="beams")
     u = fd.convert_to_pandas(beams)
@@ -204,12 +204,13 @@ elif case == "field-analysis":
     u = pd.DataFrame(); u["date"], u["m"]= X[0,:], M
     md, sd = u.set_index("date").resample("300s").mean().reset_index(), u.set_index("date").resample("300s").std().reset_index()
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
-    ax.errorbar(md.date, md.m, yerr=0.3*sd.m, fmt="o", ecolor="r", color="b", capthick=0.5,
+    ax.errorbar(md.date, md.m/10, yerr=0.3*sd.m, fmt="o", ecolor="r", color="b", capthick=0.5,
                         lw=0.5, ms=1., capsize=1, label="WAL")
     ax.text(0.99, 1.05, "Radar: WAL, SD", ha="right", va="center", transform=ax.transAxes)
     ax.set_xlim(dt.datetime(2005,9,7,14), dt.datetime(2005,9,7,21))
-    ax.set_ylabel(r"LoS, $ms^{-1}$", fontdict={"color":"b"})
-    ax.set_ylim(-10, 50)
+    #ax.set_ylabel(r"LoS, $ms^{-1}$", fontdict={"color":"b"})
+    #ax.set_ylim(-10, 50)
+    ax.legend(loc=1)
     ax.set_xlabel("Time, UT")
     fig.autofmt_xdate()
     fig.savefig("stats/plots/figures/jro_field.png", bbox_inches="tight")
@@ -231,7 +232,7 @@ elif case == "drift-analysis":
     ax.set_ylabel(r"$\Sigma$, Siemens")
     ax.set_ylim(50, 600)
     ax.text(0.01, 0.9, "MLAT, MLON: %.1f,%.1f"%(o.mlat.tolist()[0], o.mlon.tolist()[0]), ha="left", va="center", transform=ax.transAxes)
-    ax.text(0.99, 1.05, "Radar: JRO, ISR", ha="right", va="center", transform=ax.transAxes)
+    ax.text(0.99, 1.05, "Radar: JRO, JULIA", ha="right", va="center", transform=ax.transAxes)
     ax.text(0.01, 1.05, "Date: 2005-09-07", ha="left", va="center", transform=ax.transAxes)
     ax.text(0.9,0.5,"(a)",ha="center", va="center",transform=ax.transAxes)
     ax.legend(loc=1)

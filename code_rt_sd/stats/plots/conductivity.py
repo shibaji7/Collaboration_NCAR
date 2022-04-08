@@ -203,7 +203,7 @@ def plot_jro_sd_goes_TS():
     ax.legend(loc=3)
     ax.axvline(dt.datetime(2005,9,7,17,20), color="b", ls="--", lw=0.8)
     ax.axvline(dt.datetime(2005,9,7,17,37), color="r", ls="--", lw=0.8)
-    ax.text(0.99, 0.9, "Radar: JRO, ISR", ha="right", va="center", transform=ax.transAxes)
+    ax.text(0.99, 0.9, "Radar: JRO, JULIA", ha="right", va="center", transform=ax.transAxes)
     ax.set_xlabel("Time, UT")
     ax = fig.add_subplot(312)
     ax.text(0.9, 0.1, "(b)", ha="center", va="center", transform=ax.transAxes)

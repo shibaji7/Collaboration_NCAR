@@ -384,7 +384,7 @@ def plot_radstn(p,f,pz,fz,fname,lat,lon,t,zone="America/New_York"):
 def plot_velocity_ts(dn, rad, bmnum):
     """ Plot velocity TS data """
     fig = plt.figure(figsize=(6,6), dpi=150)
-    axs = [fig.add_subplot(311), fig.add_subplot(312), fig.add_subplot(313)]
+    axs = [fig.add_subplot(411), fig.add_subplot(412), fig.add_subplot(413), fig.add_subplot(414)]
     mkeys = ["vn", "vh", "vt"]
     fmt = matplotlib.dates.DateFormatter("%H:%M")
     fname = "data/sim/{dn}/{rad}/velocity.ts.csv".format(dn=dn.strftime("%Y.%m.%d.%H.%M"), rad=rad)
@@ -394,9 +394,19 @@ def plot_velocity_ts(dn, rad, bmnum):
     labs = [r"$V_{d\eta}$", r"$V_{dh}$", r"$V_{t}$"]
     I = 0
     fname = "data/sim/{dn}/{rad}/sd_data.csv.gz".format(dn=dn.strftime("%Y.%m.%d.%H.%M"), rad=rad)
+    
+    axp = axs[0]
+    axp.set_ylabel(r"Solar Flux, $Wm^{-2}$")
+    axp.set_xlabel("Time, UT")
+    axp.xaxis.set_major_formatter(fmt)
+    g = pd.read_csv("data/GOES/g15_xrs_2s_20150505_20150505.csv",skiprows=138, parse_dates=["time_tag"])
+    axp.plot(g.time_tag, g.B_FLUX, "r", lw=0.8, label="SXR")
+    axp.plot(g.time_tag, g.A_FLUX, "b", lw=0.8, label="HXR")
+    axp.legend(loc=1)
+
     dat = utils.get_sd_data(fname, 15).dropna()
     dat = dat.groupby("time").mean().reset_index()
-    for ax, mkey, col, lab in zip(axs, mkeys, cols, labs):
+    for ax, mkey, col, lab in zip(axs[1:], mkeys, cols, labs):
         ax.set_ylabel(r"Velocity, $ms^{-1}$")
         ax.set_xlabel("Time, UT")
         ax.xaxis.set_major_formatter(fmt)
@@ -415,6 +425,7 @@ def plot_velocity_ts(dn, rad, bmnum):
         ax.set_ylim(10*int((np.min(sdat[mkey]+sdat[mkey+"_min"])/10)-1), 
                 10*int((np.max(sdat[mkey]+sdat[mkey+"_max"])/10)+1))
         ax.set_xlim(sdat.dn.tolist()[0], sdat.dn.tolist()[-1])
+        axp.set_xlim(sdat.dn.tolist()[0], sdat.dn.tolist()[-1])
         I += 1
     fname = "data/sim/{dn}/{rad}/velocity.ts.png".format(dn=dn.strftime("%Y.%m.%d.%H.%M"), rad=rad)
     fig.savefig(fname,bbox_inches="tight")
@@ -825,13 +836,22 @@ class FanPlot(object):
 def plot_velocity_ts_beam(dn, rad, bmnum, model, start, end):
     """ Plot velocity TS data """
     fig = plt.figure(figsize=(5,6), dpi=150)
-    axs = [fig.add_subplot(311), fig.add_subplot(312), fig.add_subplot(313)]
+    axs = [fig.add_subplot(411), fig.add_subplot(412), fig.add_subplot(413), fig.add_subplot(414)]
     mkeys = ["vd", "vf", "vt"]
     fmt = matplotlib.dates.DateFormatter("%H:%M")
     dic = "data/op/{dn}/{model}/{rad}/bm.{bm}/".format(dn=dn.strftime("%Y.%m.%d.%H.%M"),
             rad=rad, model=model, bm="%02d"%bmnum)
     fstr = glob.glob(dic + "/velocity_ti*mat")
     fstr.sort()
+
+    axp = axs[0]
+    axp.set_ylabel(r"Solar Flux, $Wm^{-2}$")
+    axp.set_xlabel("Time, UT")
+    axp.xaxis.set_major_formatter(fmt)
+    g = pd.read_csv("data/GOES/g15_xrs_2s_20150505_20150505.csv",skiprows=139, parse_dates=["time_tag"])
+    axp.semilogy(g.time_tag, g.B_FLUX, "r", lw=0.8, label="SXR")
+    axp.semilogy(g.time_tag, g.A_FLUX, "b", lw=0.8, label="HXR")
+    axp.legend(loc=1)
     #axs[0].set_title("%s UT, Radar - %s, Beam - %d, Model - %s"%(dn.strftime("%Y.%m.%d.%H.%M"), rad, bmnum, model))
     #axs[0].set_title("%s UT, Radar - %s, Beam - %d"%(dn.strftime("%Y.%m.%d.%H.%M"), rad, bmnum))
     axs[0].text(0.98, 1.05, r"Date: %s UT"%dn.strftime("%Y-%m-%d %H:%M"), horizontalalignment="right", verticalalignment="center",
@@ -844,7 +864,7 @@ def plot_velocity_ts_beam(dn, rad, bmnum, model, start, end):
     dat = utils.get_sd_data(fname, bmnum).dropna()
     mean, std = dat.groupby("time").mean().reset_index(), dat.groupby("time").std().reset_index()
     I = 0
-    for ax, mkey, col, lab in zip(axs, mkeys, cols, labs):
+    for ax, mkey, col, lab in zip(axs[1:], mkeys, cols, labs):
         ax.set_ylabel(r"Velocity, $ms^{-1}$")
         ax.set_xlabel("Time, UT")
         ax.xaxis.set_major_formatter(fmt)
@@ -884,6 +904,7 @@ def plot_velocity_ts_beam(dn, rad, bmnum, model, start, end):
         ax.legend(loc=1)
         ax.set_ylim(-100, 200)
         ax.set_xlim(start, end)
+        axp.set_xlim(start, end)
         I += 1
     fname = "data/op/{dn}/{model}/{rad}/bm{bm}.png".format(dn=dn.strftime("%Y.%m.%d.%H.%M"), rad=rad, model=model, bm="%02d"%bmnum)
     fig.autofmt_xdate()
